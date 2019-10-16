@@ -1383,25 +1383,22 @@ namespace cling {
         break;
       }
     }
-    //printf("dump into file\n");
     dump_out.close();
-    
-
-    // spv and head file
-    // fixme: add sycl part checking
-    // parse(input)
     std::string _hsinput(input);
-    //printf("input:%s\n",_hsinput.c_str());
     head_spv_flg = utils::generate_hppandspv(_hsinput,getCI()->getLangOpts());
-    //head_spv_flg = true;
-    //utils::incremental_generate_headfile(_hsinput,getCI()->getLangOpts());
     if (head_spv_flg) {
-      //printf("generate spv and hpp\n");
-      //system("cat dump.cpp");
-      //printf("\n");
-      //exec_i = 
-      system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
-      //printf("yes\n");
+      system("clang++ --sycl -fsycl-device-only -fsycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+      if (HeadTransaction) {
+        unload(HeadTransaction[0][0]);
+        std::cout << "=======> unload previous st.h" << std::endl;
+      }
+      if (!HeadTransaction) {
+        HeadTransaction = new Transaction*;
+      }
+      if (loadHeader("st.h", HeadTransaction) == kSuccess) {
+        std::cout << "=======> load st.h\n" << std::endl;
+      }
+      /*
       std::string new_header;
       utils::incremental_generate_headfile(new_header,getCI()->getLangOpts());
       printf("\n\nnew_head:%s\n\n",new_header.c_str());
@@ -1414,13 +1411,7 @@ namespace cling {
         CO_new.ResultEvaluation = 0;
         DeclareInternal(new_header,CO_new,T);
       }
-      // fix latency problem!
-      //llvm::outs() << "system(clang) return val=" << exec_i << '\n';
-      //reload then include
-      //printf("cat st.h\n");
-      //system("cat st.h");
-      //printf("\n");
-      //loadHeader("st.h");
+      */
     }
     StateDebuggerRAII stateDebugger(this);
 

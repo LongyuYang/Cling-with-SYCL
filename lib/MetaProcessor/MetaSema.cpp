@@ -500,9 +500,20 @@ namespace cling {
     }
   }
 
-  // fixme:
+    // fixme:
   void MetaSema::actOnSYCLmodeCommand() const {
-    if(m_Interpreter.loadHeader("CL/sycl.hpp") == Interpreter::kSuccess) printf("=======> sycl.hpp included!\n");
-    if(m_Interpreter.loadLibrary("/home/test/sycl/build/lib/libsycl.so") == Interpreter::kSuccess) printf("=======> libsycl loaded!\n");
+    /***
+    Please add paths of OpenCL-Headers and SYCL headers to CPLUS_INCLUDE_PATH
+    ***/
+    if(m_Interpreter.loadHeader("CL/sycl.hpp") == Interpreter::kSuccess) {
+      printf("=======> sycl.hpp included!\n");
+    }
+    /***
+    Please add the path of libsycl.so to LD_LIBRARY_PATH
+    ***/
+    if(m_Interpreter.loadLibrary("libsycl.so") == Interpreter::kSuccess) {
+      printf("=======> libsycl loaded!\n");
+    }
+    setenv("SYCL_USE_KERNEL_SPV", "mk.spv", 1);
   }
 } // end namespace cling
