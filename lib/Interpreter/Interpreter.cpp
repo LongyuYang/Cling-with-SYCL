@@ -1387,7 +1387,7 @@ namespace cling {
     std::string _hsinput(input);
     head_spv_flg = utils::generate_hppandspv(_hsinput,getCI()->getLangOpts());
     if (head_spv_flg) {
-      system("clang++ --sycl -fsycl-device-only -fsycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+      system("clang++ --sycl -fsycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
       if (HeadTransaction) {
         unload(HeadTransaction[0][0]);
         std::cout << "=======> unload previous st.h" << std::endl;
@@ -1396,7 +1396,11 @@ namespace cling {
         HeadTransaction = new Transaction*;
       }
       if (loadHeader("st.h", HeadTransaction) == kSuccess) {
-        std::cout << "=======> load st.h\n" << std::endl;
+        std::cout << "=======> load st.h" << std::endl;
+      }
+      else {
+        std::cout << "=======> error: fail to load st.h" << std::endl;
+        assert(0);
       }
       /*
       std::string new_header;

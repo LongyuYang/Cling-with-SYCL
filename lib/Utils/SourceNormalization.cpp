@@ -21,7 +21,7 @@
 bool first_regenerate_header = true;
 std::vector<std::string> kernel_names;
 std::vector<std::string> kernel_signatures;
-
+#include <iostream>
 using namespace clang;
 
 namespace {
@@ -362,7 +362,7 @@ bool cling::utils::generate_hppandspv(std::string& input, const clang::LangOptio
     bool atEOF = Lex.Lex(Tok);
     if(Tok.is(tok::raw_identifier)&& !Tok.needsCleaning()){
       atEOF = Lex.Lex(Tok);
-      if(Tok.is(tok::period)&& !Tok.needsCleaning()){
+      if((Tok.is(tok::period) || Tok.is(tok::arrow)) && !Tok.needsCleaning()){
         atEOF = Lex.Lex(Tok);
         if(Tok.is(tok::raw_identifier)&& !Tok.needsCleaning()){
             if(Tok.getRawIdentifier().equals("submit")){
