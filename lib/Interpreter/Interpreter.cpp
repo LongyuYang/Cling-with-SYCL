@@ -458,6 +458,8 @@ namespace cling {
     // explicitly, before the implicit destruction (through the unique_ptr) of
     // the callbacks.
     m_IncrParser.reset(0);
+
+    delete HeadTransaction;
   }
 
   Transaction* Interpreter::Initialize(bool NoRuntime, bool SyntaxOnly,
@@ -1363,12 +1365,6 @@ namespace cling {
                << '}';
       dump_out.close();
 
-      //check disk files?
-      std::ofstream hppfile("st.h", std::ios::trunc);
-      hppfile.close();
-      std::ofstream spvfile("mk.spv", std::ios::trunc);
-      spvfile.close();
-
       fstart = false;
     }
     
@@ -1387,20 +1383,16 @@ namespace cling {
     std::string _hsinput(input);
     head_spv_flg = utils::generate_hppandspv(_hsinput,getCI()->getLangOpts());
     if (head_spv_flg) {
-      system("clang++ --sycl -fsycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+      std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
       if (HeadTransaction) {
         unload(HeadTransaction[0][0]);
-        std::cout << "=======> unload previous st.h" << std::endl;
       }
       if (!HeadTransaction) {
-        HeadTransaction = new Transaction*;
+        HeadTransaction = new Transaction *;
       }
-      if (loadHeader("st.h", HeadTransaction) == kSuccess) {
-        std::cout << "=======> load st.h" << std::endl;
-      }
-      else {
-        std::cout << "=======> error: fail to load st.h" << std::endl;
-        assert(0);
+      if (loadHeader("st.h", HeadTransaction) != kSuccess) {
+        std::cout << "=======> error: fail to load SYCL kernel head file" << std::endl;
+        return kFailure;
       }
       /*
       std::string new_header;
