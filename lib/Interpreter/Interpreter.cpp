@@ -22,6 +22,7 @@
 #include "IncrementalParser.h"
 #include "MultiplexInterpreterCallbacks.h"
 #include "TransactionUnloader.h"
+#include "Cppdumper.h"
 
 #include "cling/Interpreter/AutoloadCallback.h"
 #include "cling/Interpreter/CIFactory.h"
@@ -66,10 +67,8 @@
 // fixme::
 bool Dflg=false;
 bool MBflg=false;
-bool fstart = true;
 bool head_spv_flg = true;
-int exec_i = -1;
-bool extract_decl_flg = false;
+//int exec_i = -1;
 
 using namespace clang;
 
@@ -241,6 +240,7 @@ namespace cling {
     m_LLVMContext.reset(new llvm::LLVMContext);
     m_DyLibManager.reset(new DynamicLibraryManager(getOptions()));
     m_IncrParser.reset(new IncrementalParser(this, llvmdir, moduleExtensions));
+    m_cppdumper.reset(new Cppdumper());
     if (!m_IncrParser->isValid(false))
       return;
 
@@ -458,6 +458,7 @@ namespace cling {
     // explicitly, before the implicit destruction (through the unique_ptr) of
     // the callbacks.
     m_IncrParser.reset(0);
+    m_cppdumper.reset(0);
 
     delete HeadTransaction;
   }
@@ -786,17 +787,15 @@ namespace cling {
   Interpreter::process(const std::string& input, Value* V /* = 0 */,
                        Transaction** T /* = 0 */,
                        bool disableValuePrinting /* = false*/) {
-    //printf("input:%s\n",input.c_str());
     std::string wrapReadySource = input;
     size_t wrapPoint = std::string::npos;
-    extract_decl_flg = true;
+    m_cppdumper->set_extract_decl_flag(true);
     if (!isRawInputEnabled())
       wrapPoint = utils::getWrapPoint(wrapReadySource, getCI()->getLangOpts());
 
     CompilationOptions CO = makeDefaultCompilationOpts();
     CO.EnableShadowing = m_RedefinitionAllowed && !isRawInputEnabled();
 
-    //printf("wrap:%d\n",wrapPoint);
     if (isRawInputEnabled() || wrapPoint == std::string::npos) {
       CO.DeclarationExtraction = 0;
       CO.ValuePrinting = 0;
@@ -1298,44 +1297,7 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    std::ofstream dump_out;
-    if(extract_decl_flg){
-      if(fstart){
-        dump_out.open("dump.cpp");
-        dump_out<<input<<'\n'<< "int main(){\n" 
-                << '}';
-        dump_out.close();
-        std::ofstream hppfile("st.h", std::ios::trunc);
-        hppfile.close();
-        std::ofstream spvfile("mk.spv", std::ios::trunc);
-        spvfile.close();
-
-        fstart = false;
-      } else{
-        std::ifstream dump_in;
-        dump_in.open("dump.cpp");
-        std::ostringstream tmp;
-        tmp << dump_in.rdbuf();
-        std::string head = tmp.str();
-        std::string::size_type position;
-        position = head.find("int main()");
-        if(position != std::string::npos){
-          //printf("insert_place:%d\n",position);
-          std::string m_insert(input);
-          m_insert.append("\n");
-          head.insert(position,m_insert);
-          dump_out.open("dump.cpp", std::ios::in | std::ios::out);
-          dump_out.seekp(0,std::ios::beg);
-          dump_out<< head;
-          dump_out.close();
-        }else{
-          //printf("decl_strat\n");
-          assert(0);
-        }
-        dump_in.close();
-      }
-      extract_decl_flg = false;
-    }
+    m_cppdumper->dump(input,NULL,0);
 
     IncrementalParser::ParseResultTransaction PRT
       = m_IncrParser->Compile(input, CO);
@@ -1353,33 +1315,7 @@ namespace cling {
                                 Value* V, /* = 0 */
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
-    //fixme: dump input into file, fix directives by dump in DeclareInternal()??
-    std::ofstream dump_out;
-    //std::ifstream dump_in;
-    //fstart = false;
-    extract_decl_flg = false;
-    if(fstart){
-      //printf("dump headers: #include namespace cl::sycl and main()\n");
-      dump_out.open("dump.cpp");
-      dump_out << "int main(){\n" 
-               << '}';
-      dump_out.close();
-
-      fstart = false;
-    }
-    
-    dump_out.open("dump.cpp", std::ios::in | std::ios::out | std::ios::ate);
-    dump_out.seekp(-1, std::ios::end);
-    for(auto sit = input.rbegin();sit!=input.rend();sit++){
-      if(*sit!=' '){
-        if(*sit == ';'||*sit == ')'||*sit == ']'||*sit == '}')
-          dump_out<< input<< '\n'<< '}';
-        else
-          dump_out<< input<<';'<< '\n'<< '}';
-        break;
-      }
-    }
-    dump_out.close();
+    m_cppdumper->dump(input,NULL,1,wrapPoint);
     std::string _hsinput(input);
     head_spv_flg = utils::generate_hppandspv(_hsinput,getCI()->getLangOpts());
     if (head_spv_flg) {
@@ -1398,14 +1334,8 @@ namespace cling {
       std::string new_header;
       utils::incremental_generate_headfile(new_header,getCI()->getLangOpts());
       printf("\n\nnew_head:%s\n\n",new_header.c_str());
-      //printf("Incremental_header:\n%s\n",new_header.c_str());
       if(!new_header.empty()){
-        //printf("\n\nreal head catch\n\n");
-        CompilationOptions CO_new = makeDefaultCompilationOpts();
-        CO_new.DeclarationExtraction = 0;
-        CO_new.ValuePrinting = 0;
-        CO_new.ResultEvaluation = 0;
-        DeclareInternal(new_header,CO_new,T);
+        declare(new_header,T);
       }
       */
     }
