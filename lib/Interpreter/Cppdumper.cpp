@@ -12,10 +12,6 @@ namespace cling {
         dump_out << "int main(){\n" 
                << '}';
         dump_out.close();
-        hppfile.open("st.h", std::ios::trunc);
-        hppfile.close();
-        spvfile.open("mk.spv", std::ios::trunc);
-        spvfile.close();
     }
     bool Cppdumper::set_curt(Transaction* curt){
         CurT = curt;
