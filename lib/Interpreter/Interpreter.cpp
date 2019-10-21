@@ -1319,7 +1319,10 @@ namespace cling {
     std::string _hsinput(input);
     head_spv_flg = utils::generate_hppandspv(_hsinput,getCI()->getLangOpts());
     if (head_spv_flg) {
-      std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+      int sysReturn = std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+      if (sysReturn != 0) {
+        return kFailure;
+      }
       if (HeadTransaction) {
         unload(HeadTransaction[0][0]);
       }
@@ -1353,7 +1356,7 @@ namespace cling {
       = m_IncrParser->Compile(Wrapper, CO);
     Transaction* lastT = PRT.getPointer();
     //lastT->printStructure();
-
+    
     if (lastT && lastT->getState() != Transaction::kCommitted) {
       assert((lastT->getState() == Transaction::kCommitted
               || lastT->getState() == Transaction::kRolledBack
