@@ -1,7 +1,6 @@
 #include "Cppdumper.h"
 #include "cling/Interpreter/Transaction.h"
 
-
 namespace cling {
     Dumpcode_entry::Dumpcode_entry(unsigned int dsflag,const std::string& input,Transaction * T){
         declstmtflag = dsflag;
@@ -31,7 +30,7 @@ namespace cling {
     }
     bool Cppdumper::dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point){
         if((declstmtflag == 0)&&(!extract_decl_flag))
-            return true;
+            return true;      
         myvector.push_back(Dumpcode_entry(declstmtflag,input,T));
         return submit(*myvector.rbegin());
     }
@@ -64,7 +63,7 @@ namespace cling {
             dump_out.seekp(-1, std::ios::end);
             for(auto sit = input.rbegin();sit!=input.rend();sit++){
                 if(*sit!=' '){
-                    if(*sit == ';'||*sit == ')'||*sit == ']'||*sit == '}')
+                    if(*sit == ';')
                         dump_out<< input<< '\n'<< '}';
                     else
                         dump_out<< input<<';'<< '\n'<< '}';
