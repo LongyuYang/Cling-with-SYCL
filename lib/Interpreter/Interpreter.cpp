@@ -240,7 +240,7 @@ namespace cling {
     m_LLVMContext.reset(new llvm::LLVMContext);
     m_DyLibManager.reset(new DynamicLibraryManager(getOptions()));
     m_IncrParser.reset(new IncrementalParser(this, llvmdir, moduleExtensions));
-    m_cppdumper.reset(new Cppdumper());
+    m_cppdumper.reset(new Cppdumper(this));
     if (!m_IncrParser->isValid(false))
       return;
 
