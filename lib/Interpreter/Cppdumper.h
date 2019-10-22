@@ -6,9 +6,13 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <iostream>
+#include <memory>
 
 namespace cling {
   class Transaction;
+  class InputValidator;
+  class Interpreter;
 } // namespace cling
 
 
@@ -28,15 +32,18 @@ namespace cling {
   /// and then to be compiled by syclcompiler
   class Cppdumper {
   private:
+    Interpreter* m_Interpreter;
     std::vector<Dumpcode_entry> myvector;
     std::ofstream dump_out;
     std::ofstream hppfile;
     std::ofstream spvfile;
     bool extract_decl_flag = false;
     Transaction* CurT;
+    std::unique_ptr<InputValidator> m_InputValidator;
 
   public:
-    Cppdumper();
+    Cppdumper(Interpreter* interp);
+    ~Cppdumper();
     bool set_extract_decl_flag(const bool flag);
     bool set_curt(Transaction* curt);
     bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point);

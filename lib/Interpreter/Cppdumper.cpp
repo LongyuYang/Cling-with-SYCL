@@ -1,5 +1,11 @@
 #include "Cppdumper.h"
+
 #include "cling/Interpreter/Transaction.h"
+#include "cling/Interpreter/Interpreter.h"
+#include "cling/MetaProcessor/InputValidator.h"
+#include "cling/Utils/SourceNormalization.h"
+
+#include "clang/Frontend/CompilerInstance.h"
 
 namespace cling {
     Dumpcode_entry::Dumpcode_entry(unsigned int dsflag,const std::string& input,Transaction * T){
@@ -7,11 +13,14 @@ namespace cling {
         code.assign(input);
         CurT = T;
     }
-    Cppdumper::Cppdumper(){
+    Cppdumper::Cppdumper(Interpreter* interp) : m_Interpreter(interp) {
         dump_out.open("dump.cpp");
         dump_out << "int main(){\n" 
                << '}';
         dump_out.close();
+        m_InputValidator.reset(new InputValidator());
+    }
+    Cppdumper::~Cppdumper(){      
     }
     bool Cppdumper::set_curt(Transaction* curt){
         CurT = curt;
@@ -27,8 +36,31 @@ namespace cling {
     bool Cppdumper::dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point){
         if((declstmtflag == 0)&&(!extract_decl_flag))
             return true;      
-        myvector.push_back(Dumpcode_entry(declstmtflag,input,T));
-        return submit(*myvector.rbegin());
+        if(declstmtflag == 0){
+            myvector.push_back(Dumpcode_entry(declstmtflag,input,T));
+            return submit(*myvector.rbegin());
+        }
+        std::istringstream input_holder(input);
+        std::string line; 
+        std::string complete_input;
+        while(getline(input_holder,line)){
+            if (line.empty() || (line.size() == 1 && line.front() == '\n')) {
+                continue;
+            }
+            if (m_InputValidator->validate(line) == InputValidator::kIncomplete) {
+                continue;
+            }
+            complete_input.clear();
+            m_InputValidator->reset(&complete_input);
+            size_t wrapPoint = std::string::npos;
+            wrapPoint = utils::getWrapPoint(complete_input, m_Interpreter->getCI()->getLangOpts());
+            if(wrapPoint == std::string::npos)
+                myvector.push_back(Dumpcode_entry(0,complete_input,T));
+            else
+                myvector.push_back(Dumpcode_entry(1,complete_input,T));
+            submit(*myvector.rbegin());
+        }
+        return true;
     }
     bool Cppdumper::submit(Dumpcode_entry & de){
         std::string input(de.code);

@@ -25,6 +25,7 @@ set(CLING_DEPEND_LIBS
 
 set(LIBS
   clingUtils
+  clingMetaProcessor
 )
 
 set(LLVM_LINK_COMPONENTS
