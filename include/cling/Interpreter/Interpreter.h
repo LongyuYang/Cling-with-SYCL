@@ -220,9 +220,7 @@ namespace cling {
     ///
     mutable std::vector<ClangInternalState*> m_StoredStates;
 
-    ///\brief Transaction of the SYCL kernel head file
-    ///
-    Transaction** HeadTransaction = 0;
+    
     
     enum {
       kStdStringTransaction = 0, // Transaction known to contain std::string

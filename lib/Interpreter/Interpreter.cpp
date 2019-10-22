@@ -460,7 +460,6 @@ namespace cling {
     m_IncrParser.reset(0);
     m_cppdumper.reset(0);
 
-    delete HeadTransaction;
   }
 
   Transaction* Interpreter::Initialize(bool NoRuntime, bool SyntaxOnly,
@@ -1315,34 +1314,10 @@ namespace cling {
                                 Value* V, /* = 0 */
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
-    m_cppdumper->dump(input,NULL,1,wrapPoint);
-    std::string _hsinput(input);
-    head_spv_flg = utils::generate_hppandspv(_hsinput,getCI()->getLangOpts());
-    if (head_spv_flg) {
-      int sysReturn = std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
-      if (sysReturn != 0) {
-        return kFailure;
-      }
-      if (HeadTransaction) {
-        unload(HeadTransaction[0][0]);
-      }
-      if (!HeadTransaction) {
-        HeadTransaction = new Transaction *;
-      }
-      if (loadHeader("st.h", HeadTransaction) != kSuccess) {
-        std::cout << "=======> error: fail to load SYCL kernel head file" << std::endl;
-        return kFailure;
-      }
-      /*
-      std::string new_header;
-      utils::incremental_generate_headfile(new_header,getCI()->getLangOpts());
-      printf("\n\nnew_head:%s\n\n",new_header.c_str());
-      if(!new_header.empty()){
-        declare(new_header,T);
-      }
-      */
-    }
     StateDebuggerRAII stateDebugger(this);
+    m_cppdumper->dump(input,NULL,1,wrapPoint);
+    if(!m_cppdumper->compile(input))
+      return kFailure;
 
     // Wrap the expression
     std::string WrapperBuffer;
