@@ -35,11 +35,12 @@ namespace cling {
     Interpreter* m_Interpreter;
     std::vector<Dumpcode_entry> myvector;
     std::ofstream dump_out;
-    std::ofstream hppfile;
-    std::ofstream spvfile;
     bool extract_decl_flag = false;
     Transaction* CurT;
     std::unique_ptr<InputValidator> m_InputValidator;
+    ///\brief Transaction of the SYCL kernel head file
+    ///
+    Transaction** HeadTransaction = 0;
 
   public:
     Cppdumper(Interpreter* interp);
@@ -49,6 +50,7 @@ namespace cling {
     bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point);
     bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag);
     bool submit(Dumpcode_entry & de);
+    bool compile(const std::string& input);
 
   };
 

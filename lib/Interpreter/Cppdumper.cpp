@@ -20,7 +20,8 @@ namespace cling {
         dump_out.close();
         m_InputValidator.reset(new InputValidator());
     }
-    Cppdumper::~Cppdumper(){      
+    Cppdumper::~Cppdumper(){ 
+        delete HeadTransaction;
     }
     bool Cppdumper::set_curt(Transaction* curt){
         CurT = curt;
@@ -99,6 +100,25 @@ namespace cling {
                 }
             }
             dump_out.close();
+        }
+        return true;
+    }
+
+    bool Cppdumper::compile(const std::string& input){
+        std::string _hsinput(input);
+        bool head_spv_flg = utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
+        if (head_spv_flg) {
+            int sysReturn = std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+            if (sysReturn != 0)
+                return false;
+            if (HeadTransaction)
+                m_Interpreter->unload(HeadTransaction[0][0]);
+            if (!HeadTransaction)
+                HeadTransaction = new Transaction *;
+            if (m_Interpreter->loadHeader("st.h", HeadTransaction) != Interpreter::kSuccess) {
+                std::cout << "=======> error: fail to load SYCL kernel head file" << std::endl;
+                return false;
+            }
         }
         return true;
     }
