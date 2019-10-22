@@ -684,5 +684,6 @@ namespace cling {
       m_Actions->actOnSYCLmodeCommand();
       return true;
     }
+    return false;
   }
 } // end namespace cling
