@@ -3,7 +3,7 @@
 
 #include <string>
 #include <system_error>
-#include <vector>
+#include <list>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -33,7 +33,7 @@ namespace cling {
   class Cppdumper {
   private:
     Interpreter* m_Interpreter;
-    std::vector<Dumpcode_entry> myvector;
+    std::list<Dumpcode_entry> myvector;
     std::ofstream dump_out;
     bool extract_decl_flag = false;
     Transaction* CurT;
@@ -49,9 +49,10 @@ namespace cling {
     bool set_curt(Transaction* curt);
     bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point);
     bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag);
-    bool submit(Dumpcode_entry & de);
+    bool submit();
     bool compile(const std::string& input);
-
+    void setTransaction(Transaction* T);
+    void removeCodeByTransaction(Transaction* T);
   };
 
 } // namespace cling

@@ -1296,13 +1296,12 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    m_cppdumper->dump(input,NULL,0);
-
     IncrementalParser::ParseResultTransaction PRT
       = m_IncrParser->Compile(input, CO);
     if (PRT.getInt() == IncrementalParser::kFailed)
       return Interpreter::kFailure;
-
+    m_cppdumper->dump(input, PRT.getPointer(), 0);
+    
     if (T)
       *T = PRT.getPointer();
     return Interpreter::kSuccess;
@@ -1315,7 +1314,7 @@ namespace cling {
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
     StateDebuggerRAII stateDebugger(this);
-    m_cppdumper->dump(input,NULL,1,wrapPoint);
+    m_cppdumper->dump(input, NULL, 1, wrapPoint);
     if(!m_cppdumper->compile(input))
       return kFailure;
 
@@ -1359,8 +1358,10 @@ namespace cling {
     Value resultV;
     if (!V)
       V = &resultV;
-    if (!lastT->getWrapperFD()) // no wrapper to run
+    if (!lastT->getWrapperFD()) {// no wrapper to run 
+      m_cppdumper->setTransaction(lastT);
       return Interpreter::kSuccess;
+    }
     else {
       ExecutionResult res = RunFunction(lastT->getWrapperFD(), V);
       if (res < kExeFirstError) {
@@ -1371,11 +1372,13 @@ namespace cling {
             // dumpIfNoStorage.
             && V->needsManagedAllocation())
          V->dump();
+         m_cppdumper->setTransaction(lastT);
          return Interpreter::kSuccess;
       } else {
         return Interpreter::kFailure;
       }
     }
+    m_cppdumper->setTransaction(lastT);
     return Interpreter::kSuccess;
   }
 
@@ -1450,6 +1453,7 @@ namespace cling {
   void Interpreter::unload(Transaction& T) {
     // Clear any stored states that reference the llvm::Module.
     // Do it first in case
+    m_cppdumper->removeCodeByTransaction(&T);
     auto Module = T.getModule();
     if (Module && !m_StoredStates.empty()) {
       const auto Predicate = [&Module](const ClangInternalState* S) {
@@ -1768,6 +1772,10 @@ namespace cling {
 
     // Avoid assertion in the ~IncrementalParser.
     T.setState(Transaction::kCommitted);
+  }
+
+  void Interpreter::clearCppdumperNullTransaction() {
+    m_cppdumper->removeCodeByTransaction(NULL);
   }
 
   namespace runtime {
