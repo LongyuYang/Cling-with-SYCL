@@ -57,8 +57,13 @@ namespace cling {
             wrapPoint = utils::getWrapPoint(complete_input, m_Interpreter->getCI()->getLangOpts());
             if(wrapPoint == std::string::npos)
                 myvector.push_back(Dumpcode_entry(0,complete_input,T));
-            else
+            else if(wrapPoint == 0)
                 myvector.push_back(Dumpcode_entry(1,complete_input,T));
+            else {
+                myvector.push_back(Dumpcode_entry(0,complete_input.substr(0,wrapPoint),T));
+                submit(*myvector.rbegin());
+                myvector.push_back(Dumpcode_entry(1,complete_input.substr(wrapPoint),T));
+            }
             submit(*myvector.rbegin());
         }
         return true;
