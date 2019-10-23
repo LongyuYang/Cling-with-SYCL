@@ -819,6 +819,8 @@ namespace cling {
                         llvm::raw_ostream* logs = 0,
                         IgnoreFilesFunc_t ignoreFiles =
                           [](const clang::PresumedLoc&) { return false;}) const;
+    
+    void clearCppdumperNullTransaction();
 
     friend class runtime::internal::LifetimeHandler;
   };

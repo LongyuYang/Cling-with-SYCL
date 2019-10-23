@@ -14,10 +14,6 @@ namespace cling {
         CurT = T;
     }
     Cppdumper::Cppdumper(Interpreter* interp) : m_Interpreter(interp) {
-        dump_out.open("dump.cpp");
-        dump_out << "int main(){\n" 
-               << '}';
-        dump_out.close();
         m_InputValidator.reset(new InputValidator());
     }
     Cppdumper::~Cppdumper(){ 
@@ -39,7 +35,7 @@ namespace cling {
             return true;      
         if(declstmtflag == 0){
             myvector.push_back(Dumpcode_entry(declstmtflag,input,T));
-            return submit(*myvector.rbegin());
+            return submit();
         }
         std::istringstream input_holder(input);
         std::string line; 
@@ -61,51 +57,39 @@ namespace cling {
                 myvector.push_back(Dumpcode_entry(1,complete_input,T));
             else {
                 myvector.push_back(Dumpcode_entry(0,complete_input.substr(0,wrapPoint),T));
-                submit(*myvector.rbegin());
+                submit();
                 myvector.push_back(Dumpcode_entry(1,complete_input.substr(wrapPoint),T));
             }
-            submit(*myvector.rbegin());
+            submit();
         }
         return true;
     }
-    bool Cppdumper::submit(Dumpcode_entry & de){
-        std::string input(de.code);
-        unsigned declstmtflag = de.declstmtflag;
-        extract_decl_flag = false;
-        if(declstmtflag == 0){
-            std::ifstream dump_in;
-            dump_in.open("dump.cpp");
-            std::ostringstream tmp;
-            tmp << dump_in.rdbuf();
-            std::string head = tmp.str();
-            std::string::size_type position;
-            position = head.find("int main()");
-            if(position != std::string::npos){
-                std::string m_insert(input);
-                m_insert.append("\n");
-                head.insert(position,m_insert);
-                dump_out.open("dump.cpp", std::ios::in | std::ios::out);
-                dump_out.seekp(0,std::ios::beg);
-                dump_out<< head;
-                dump_out.close();
-            }else{
-                assert(0);
+    bool Cppdumper::submit(){
+        std::string declCode;
+        std::string stmtCode;
+        for (auto& de : myvector){
+            std::string input(de.code);
+            extract_decl_flag = false;
+            if(de.declstmtflag == 0){
+                declCode = declCode + input + '\n';
             }
-            dump_in.close();
-        }else{
-            dump_out.open("dump.cpp", std::ios::in | std::ios::out | std::ios::ate);
-            dump_out.seekp(-1, std::ios::end);
-            for(auto sit = input.rbegin();sit!=input.rend();sit++){
-                if(*sit!=' '){
-                    if(*sit == ';')
-                        dump_out<< input<< '\n'<< '}';
-                    else
-                        dump_out<< input<<';'<< '\n'<< '}';
-                    break;
+            else{
+                stmtCode = stmtCode + input;
+                for(auto sit = input.rbegin();sit!=input.rend();sit++){
+                    if(*sit!=' '){
+                        if(*sit == ';')
+                            stmtCode += '\n';
+                        else
+                            stmtCode += ";\n";
+                        break;
+                    }
                 }
             }
-            dump_out.close();
         }
+        dump_out.open("dump.cpp", std::ios::in | std::ios::out | std::ios::trunc);
+        dump_out.seekp(0,std::ios::beg);
+        dump_out<< declCode << "int main(){\n" + stmtCode + "}";
+        dump_out.close();
         return true;
     }
 
@@ -114,8 +98,10 @@ namespace cling {
         bool head_spv_flg = utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
         if (head_spv_flg) {
             int sysReturn = std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
-            if (sysReturn != 0)
+            if (sysReturn != 0) {
+                removeCodeByTransaction(NULL);
                 return false;
+            }
             if (HeadTransaction)
                 m_Interpreter->unload(HeadTransaction[0][0]);
             if (!HeadTransaction)
@@ -126,5 +112,21 @@ namespace cling {
             }
         }
         return true;
+    }
+    void Cppdumper::setTransaction(Transaction* T) {
+        for (auto it = myvector.rbegin(); it != myvector.rend(); it++) {
+            if (it->CurT != NULL) break;
+            else it->CurT = T;
+        }
+    }
+    void Cppdumper::removeCodeByTransaction(Transaction* T) {
+        for (auto it = myvector.begin(); it != myvector.end();) {
+            if (it->declstmtflag == 1 && (it->CurT == NULL || it->CurT == T)) {
+                it = myvector.erase(it);
+            }
+            else {
+                it++;
+            }
+        }
     }
 }
