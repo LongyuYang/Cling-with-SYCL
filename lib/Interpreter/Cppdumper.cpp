@@ -8,10 +8,11 @@
 #include "clang/Frontend/CompilerInstance.h"
 
 namespace cling {
-    Dumpcode_entry::Dumpcode_entry(unsigned int dsflag,const std::string& input,Transaction * T){
+    Dumpcode_entry::Dumpcode_entry(unsigned int dsflag,const std::string& input,Transaction * T, bool declSuc/* = false*/){
         declstmtflag = dsflag;
         code.assign(input);
         CurT = T;
+        declSuccess = declSuc;
     }
     Cppdumper::Cppdumper(Interpreter* interp) : m_Interpreter(interp) {
         m_InputValidator.reset(new InputValidator());
@@ -27,14 +28,14 @@ namespace cling {
         extract_decl_flag = flag;
         return true;
     }
-    bool Cppdumper::dump(const std::string& input,Transaction* T,unsigned int declstmtflag){
-        return dump(input,T,declstmtflag,std::string::npos);
+    bool Cppdumper::dump(const std::string& input,Transaction* T,unsigned int declstmtflag, bool declSuccess/* = false*/){
+        return dump(input,T,declstmtflag,std::string::npos, declSuccess);
     }
-    bool Cppdumper::dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point){
+    bool Cppdumper::dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point, bool declSuccess/* = false*/){
         if((declstmtflag == 0)&&(!extract_decl_flag))
             return true;      
         if(declstmtflag == 0){
-            myvector.push_back(Dumpcode_entry(declstmtflag,input,T));
+            myvector.push_back(Dumpcode_entry(declstmtflag,input,T, declSuccess));
             return submit();
         }
         std::istringstream input_holder(input);
@@ -121,7 +122,7 @@ namespace cling {
     }
     void Cppdumper::removeCodeByTransaction(Transaction* T) {
         for (auto it = myvector.begin(); it != myvector.end();) {
-            if (it->declstmtflag == 1 && (it->CurT == NULL || it->CurT == T)) {
+            if (!it->declSuccess && (it->CurT == NULL || it->CurT == T)) {
                 it = myvector.erase(it);
             }
             else {

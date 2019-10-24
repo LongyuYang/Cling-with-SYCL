@@ -25,7 +25,8 @@ namespace cling {
       unsigned int declstmtflag;
       std::string code;
       Transaction * CurT;
-      Dumpcode_entry(unsigned int dsflag,const std::string& input,Transaction * T);
+      bool declSuccess;
+      Dumpcode_entry(unsigned int dsflag,const std::string& input,Transaction * T, bool declSuc=false);
   };
 
   ///\brief The class is responsible for dump cpp code into dump.cpp
@@ -47,8 +48,8 @@ namespace cling {
     ~Cppdumper();
     bool set_extract_decl_flag(const bool flag);
     bool set_curt(Transaction* curt);
-    bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point);
-    bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag);
+    bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag,size_t wrap_point, bool declSuccess=false);
+    bool dump(const std::string& input,Transaction* T,unsigned int declstmtflag, bool declSuccess=false);
     bool submit();
     bool compile(const std::string& input);
     void setTransaction(Transaction* T);

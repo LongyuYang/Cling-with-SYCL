@@ -1300,7 +1300,7 @@ namespace cling {
       = m_IncrParser->Compile(input, CO);
     if (PRT.getInt() == IncrementalParser::kFailed)
       return Interpreter::kFailure;
-    m_cppdumper->dump(input, PRT.getPointer(), 0);
+    m_cppdumper->dump(input, PRT.getPointer(), 0, true);
     
     if (T)
       *T = PRT.getPointer();
