@@ -1296,11 +1296,14 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
+    if (!m_cppdumper->dump(input, NULL, 0, true)){
+      return kFailure;
+    }
+    
     IncrementalParser::ParseResultTransaction PRT
       = m_IncrParser->Compile(input, CO);
     if (PRT.getInt() == IncrementalParser::kFailed)
       return Interpreter::kFailure;
-    m_cppdumper->dump(input, PRT.getPointer(), 0, true);
     
     if (T)
       *T = PRT.getPointer();
@@ -1314,9 +1317,9 @@ namespace cling {
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
     StateDebuggerRAII stateDebugger(this);
-    m_cppdumper->dump(input, NULL, 1, wrapPoint);
-    if(!m_cppdumper->compile(input))
+    if (!m_cppdumper->dump(input, NULL, 1, wrapPoint)){
       return kFailure;
+    }
 
     // Wrap the expression
     std::string WrapperBuffer;
@@ -1440,7 +1443,6 @@ namespace cling {
                           Transaction** T /*= 0*/) {
     std::string code;
     code += "#include \"" + filename + "\"";
-
     CompilationOptions CO = makeDefaultCompilationOpts();
     CO.DeclarationExtraction = 0;
     CO.ValuePrinting = 0;
@@ -1776,6 +1778,10 @@ namespace cling {
 
   void Interpreter::clearCppdumperNullTransaction() {
     m_cppdumper->removeCodeByTransaction(NULL);
+  }
+
+  void Interpreter::setExtractDeclFlag(bool flag) {
+    m_cppdumper->set_extract_decl_flag(flag);
   }
 
   namespace runtime {

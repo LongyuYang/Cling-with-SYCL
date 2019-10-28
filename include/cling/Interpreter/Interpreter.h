@@ -822,6 +822,8 @@ namespace cling {
     
     void clearCppdumperNullTransaction();
 
+    void setExtractDeclFlag(bool);
+
     friend class runtime::internal::LifetimeHandler;
   };
 } // namespace cling

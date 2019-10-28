@@ -42,7 +42,8 @@ namespace cling {
     ///\brief Transaction of the SYCL kernel head file
     ///
     Transaction** HeadTransaction = 0;
-
+    int counter;
+    bool secureCode;
   public:
     Cppdumper(Interpreter* interp);
     ~Cppdumper();

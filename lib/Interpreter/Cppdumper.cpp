@@ -16,9 +16,18 @@ namespace cling {
     }
     Cppdumper::Cppdumper(Interpreter* interp) : m_Interpreter(interp) {
         m_InputValidator.reset(new InputValidator());
+        counter = 0;
+        HeadTransaction = new Transaction *; 
+        *HeadTransaction = NULL;
+        secureCode = false;
+        dump_out.open("dump.cpp", std::ios::in | std::ios::out | std::ios::trunc);
+        dump_out.close();
     }
     Cppdumper::~Cppdumper(){ 
         delete HeadTransaction;
+        for (int i = 0; i < counter; i++) {
+            remove((std::string("st") + std::to_string(i) + std::string(".h")).c_str());
+        }
     }
     bool Cppdumper::set_curt(Transaction* curt){
         CurT = curt;
@@ -36,7 +45,8 @@ namespace cling {
             return true;      
         if(declstmtflag == 0){
             myvector.push_back(Dumpcode_entry(declstmtflag,input,T, declSuccess));
-            return submit();
+            submit();
+            return compile(input);
         }
         std::istringstream input_holder(input);
         std::string line; 
@@ -63,7 +73,7 @@ namespace cling {
             }
             submit();
         }
-        return true;
+        return compile(input);
     }
     bool Cppdumper::submit(){
         std::string declCode;
@@ -96,21 +106,29 @@ namespace cling {
 
     bool Cppdumper::compile(const std::string& input){
         std::string _hsinput(input);
-        bool head_spv_flg = utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
-        if (head_spv_flg) {
-            int sysReturn = std::system("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+        //bool head_spv_flg = utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
+        if (true) {
+            std::string headFileName = std::string("st") + std::to_string(counter) + std::string(".h");
+            counter++;
+            dump_out.open(headFileName.c_str(), std::ios::in | std::ios::out| std::ios::trunc);
+            dump_out.close();
+            int sysReturn = std::system(
+                (std::string("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=")
+                + headFileName 
+                + std::string(" -c dump.cpp -o mk.spv")).c_str());
             if (sysReturn != 0) {
                 removeCodeByTransaction(NULL);
                 return false;
             }
-            if (HeadTransaction)
+            if (HeadTransaction && HeadTransaction[0]) {
+                secureCode = true;
                 m_Interpreter->unload(HeadTransaction[0][0]);
-            if (!HeadTransaction)
-                HeadTransaction = new Transaction *;
-            if (m_Interpreter->loadHeader("st.h", HeadTransaction) != Interpreter::kSuccess) {
+                secureCode = false;
+            }          
+            if (m_Interpreter->loadHeader(headFileName.c_str(), HeadTransaction) != Interpreter::kSuccess) {
                 std::cout << "=======> error: fail to load SYCL kernel head file" << std::endl;
                 return false;
-            }
+            }        
         }
         return true;
     }
@@ -121,7 +139,8 @@ namespace cling {
         }
     }
     void Cppdumper::removeCodeByTransaction(Transaction* T) {
-        for (auto it = myvector.begin(); it != myvector.end();) {
+        if (!secureCode) {
+            for (auto it = myvector.begin(); it != myvector.end();) {
             if (!it->declSuccess && (it->CurT == NULL || it->CurT == T)) {
                 it = myvector.erase(it);
             }
@@ -129,5 +148,7 @@ namespace cling {
                 it++;
             }
         }
+        }
+        
     }
 }
