@@ -794,7 +794,6 @@ namespace cling {
 
     CompilationOptions CO = makeDefaultCompilationOpts();
     CO.EnableShadowing = m_RedefinitionAllowed && !isRawInputEnabled();
-
     if (isRawInputEnabled() || wrapPoint == std::string::npos) {
       CO.DeclarationExtraction = 0;
       CO.ValuePrinting = 0;
@@ -1296,7 +1295,7 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    if (!m_cppdumper->dump(input, NULL, 0, true)){
+    if (!m_cppdumper->dump(input, NULL, 0)){
       return kFailure;
     }
     
@@ -1304,6 +1303,8 @@ namespace cling {
       = m_IncrParser->Compile(input, CO);
     if (PRT.getInt() == IncrementalParser::kFailed)
       return Interpreter::kFailure;
+    
+    m_cppdumper->setDeclSuccess(PRT.getPointer());
     
     if (T)
       *T = PRT.getPointer();

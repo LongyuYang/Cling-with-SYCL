@@ -16,7 +16,6 @@ namespace cling {
     }
     Cppdumper::Cppdumper(Interpreter* interp) : m_Interpreter(interp) {
         m_InputValidator.reset(new InputValidator());
-        counter = 0;
         HeadTransaction = new Transaction *; 
         *HeadTransaction = NULL;
         secureCode = false;
@@ -25,9 +24,6 @@ namespace cling {
     }
     Cppdumper::~Cppdumper(){ 
         delete HeadTransaction;
-        for (int i = 0; i < counter; i++) {
-            remove((std::string("st") + std::to_string(i) + std::string(".h")).c_str());
-        }
     }
     bool Cppdumper::set_curt(Transaction* curt){
         CurT = curt;
@@ -80,7 +76,6 @@ namespace cling {
         std::string stmtCode;
         for (auto& de : myvector){
             std::string input(de.code);
-            extract_decl_flag = false;
             if(de.declstmtflag == 0){
                 declCode = declCode + input + '\n';
             }
@@ -101,6 +96,7 @@ namespace cling {
         dump_out.seekp(0,std::ios::beg);
         dump_out<< declCode << "int main(){\n" + stmtCode + "}";
         dump_out.close();
+        extract_decl_flag = false;
         return true;
     }
 
@@ -108,14 +104,9 @@ namespace cling {
         std::string _hsinput(input);
         //bool head_spv_flg = utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
         if (true) {
-            std::string headFileName = std::string("st") + std::to_string(counter) + std::string(".h");
-            counter++;
-            dump_out.open(headFileName.c_str(), std::ios::in | std::ios::out| std::ios::trunc);
+            dump_out.open("st.h", std::ios::in | std::ios::out| std::ios::trunc);
             dump_out.close();
-            int sysReturn = std::system(
-                (std::string("clang++ --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=")
-                + headFileName 
-                + std::string(" -c dump.cpp -o mk.spv")).c_str());
+            int sysReturn = std::system("clang++ -Wno-unused-value --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
             if (sysReturn != 0) {
                 removeCodeByTransaction(NULL);
                 return false;
@@ -124,11 +115,16 @@ namespace cling {
                 secureCode = true;
                 m_Interpreter->unload(HeadTransaction[0][0]);
                 secureCode = false;
-            }          
-            if (m_Interpreter->loadHeader(headFileName.c_str(), HeadTransaction) != Interpreter::kSuccess) {
-                std::cout << "=======> error: fail to load SYCL kernel head file" << std::endl;
+            }
+            std::ifstream headFile;
+            headFile.open("st.h");
+            std::ostringstream tmp;
+            tmp << headFile.rdbuf();
+            std::string headFileContent = tmp.str();
+            headFile.close();
+            if (m_Interpreter->declare(headFileContent.c_str(), HeadTransaction) != Interpreter::kSuccess) {
                 return false;
-            }        
+            } 
         }
         return true;
     }
@@ -138,17 +134,28 @@ namespace cling {
             else it->CurT = T;
         }
     }
+    void Cppdumper::setDeclSuccess(Transaction* T) {
+        if (T) {
+            setTransaction(T);
+        }
+        else {
+            for (auto it = myvector.rbegin(); it != myvector.rend(); it++) {
+                if (!it->CurT) {
+                    it->declSuccess = true;
+                }
+            }
+        }
+    }
     void Cppdumper::removeCodeByTransaction(Transaction* T) {
         if (!secureCode) {
             for (auto it = myvector.begin(); it != myvector.end();) {
-            if (!it->declSuccess && (it->CurT == NULL || it->CurT == T)) {
-                it = myvector.erase(it);
-            }
-            else {
-                it++;
+                if (!it->declSuccess && (it->CurT == NULL || it->CurT == T)) {
+                    it = myvector.erase(it);
+                }
+                else {
+                    it++;
+                }
             }
         }
-        }
-        
     }
 }

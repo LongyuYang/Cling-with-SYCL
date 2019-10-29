@@ -42,7 +42,6 @@ namespace cling {
     ///\brief Transaction of the SYCL kernel head file
     ///
     Transaction** HeadTransaction = 0;
-    int counter;
     bool secureCode;
   public:
     Cppdumper(Interpreter* interp);
@@ -54,6 +53,7 @@ namespace cling {
     bool submit();
     bool compile(const std::string& input);
     void setTransaction(Transaction* T);
+    void setDeclSuccess(Transaction* T);
     void removeCodeByTransaction(Transaction* T);
   };
 
