@@ -103,18 +103,18 @@ namespace cling {
     bool Cppdumper::compile(const std::string& input){
         std::string _hsinput(input);
         //bool head_spv_flg = utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
+        secureCode = true;
         if (true) {
             dump_out.open("st.h", std::ios::in | std::ios::out| std::ios::trunc);
-            dump_out.close();
+            dump_out.close();        
             int sysReturn = std::system("clang++ -Wno-unused-value --sycl -fno-sycl-use-bitcode -Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
             if (sysReturn != 0) {
+                secureCode = false;
                 removeCodeByTransaction(NULL);
                 return false;
             }
-            if (HeadTransaction && HeadTransaction[0]) {
-                secureCode = true;
+            if (HeadTransaction && HeadTransaction[0]) {     
                 m_Interpreter->unload(HeadTransaction[0][0]);
-                secureCode = false;
             }
             std::ifstream headFile;
             headFile.open("st.h");
@@ -123,9 +123,11 @@ namespace cling {
             std::string headFileContent = tmp.str();
             headFile.close();
             if (m_Interpreter->declare(headFileContent.c_str(), HeadTransaction) != Interpreter::kSuccess) {
+                secureCode = false;
                 return false;
             } 
         }
+        secureCode = false;
         return true;
     }
     void Cppdumper::setTransaction(Transaction* T) {
@@ -135,13 +137,15 @@ namespace cling {
         }
     }
     void Cppdumper::setDeclSuccess(Transaction* T) {
-        if (T) {
+        if (!secureCode) {
+            if (T) {
             setTransaction(T);
-        }
-        else {
-            for (auto it = myvector.rbegin(); it != myvector.rend(); it++) {
-                if (!it->CurT) {
-                    it->declSuccess = true;
+            }
+            else {
+                for (auto it = myvector.rbegin(); it != myvector.rend(); it++) {
+                    if (!it->CurT) {
+                        it->declSuccess = true;
+                    }
                 }
             }
         }
