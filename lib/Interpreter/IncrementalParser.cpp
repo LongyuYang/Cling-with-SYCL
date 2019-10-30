@@ -536,7 +536,7 @@ namespace cling {
         Diags.Reset(/*soft=*/true);
         if (ClearDiagClient)
           Diags.getClient()->clear();
-        m_Interpreter->clearCppdumperNullTransaction();
+        m_Interpreter->clearSYCLCompilerNULLTransaction();
       }
       return;
     }
