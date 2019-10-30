@@ -22,7 +22,7 @@
 #include "IncrementalParser.h"
 #include "MultiplexInterpreterCallbacks.h"
 #include "TransactionUnloader.h"
-#include "Cppdumper.h"
+#include "IncrementalSYCLDeviceCompiler.h"
 
 #include "cling/Interpreter/AutoloadCallback.h"
 #include "cling/Interpreter/CIFactory.h"
@@ -240,7 +240,7 @@ namespace cling {
     m_LLVMContext.reset(new llvm::LLVMContext);
     m_DyLibManager.reset(new DynamicLibraryManager(getOptions()));
     m_IncrParser.reset(new IncrementalParser(this, llvmdir, moduleExtensions));
-    m_cppdumper.reset(new Cppdumper(this));
+    m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this));
     if (!m_IncrParser->isValid(false))
       return;
 
@@ -458,7 +458,7 @@ namespace cling {
     // explicitly, before the implicit destruction (through the unique_ptr) of
     // the callbacks.
     m_IncrParser.reset(0);
-    m_cppdumper.reset(0);
+    m_SYCLCompiler.reset(0);
 
   }
 
@@ -788,7 +788,7 @@ namespace cling {
                        bool disableValuePrinting /* = false*/) {
     std::string wrapReadySource = input;
     size_t wrapPoint = std::string::npos;
-    m_cppdumper->set_extract_decl_flag(true);
+    m_SYCLCompiler->setExtractDeclFlag(true);
     if (!isRawInputEnabled())
       wrapPoint = utils::getWrapPoint(wrapReadySource, getCI()->getLangOpts());
 
@@ -1295,7 +1295,7 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    if (!m_cppdumper->dump(input, NULL, 0)){
+    if (!m_SYCLCompiler->dump(input, NULL, 0)){
       return kFailure;
     }
     
@@ -1304,7 +1304,7 @@ namespace cling {
     if (PRT.getInt() == IncrementalParser::kFailed)
       return Interpreter::kFailure;
     
-    m_cppdumper->setDeclSuccess(PRT.getPointer());
+    m_SYCLCompiler->setDeclSuccess(PRT.getPointer());
     
     if (T)
       *T = PRT.getPointer();
@@ -1318,7 +1318,7 @@ namespace cling {
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
     StateDebuggerRAII stateDebugger(this);
-    if (!m_cppdumper->dump(input, NULL, 1, wrapPoint)){
+    if (!m_SYCLCompiler->dump(input, NULL, 1, wrapPoint)){
       return kFailure;
     }
 
@@ -1363,7 +1363,7 @@ namespace cling {
     if (!V)
       V = &resultV;
     if (!lastT->getWrapperFD()) {// no wrapper to run 
-      m_cppdumper->setTransaction(lastT);
+      m_SYCLCompiler->setTransaction(lastT);
       return Interpreter::kSuccess;
     }
     else {
@@ -1376,13 +1376,13 @@ namespace cling {
             // dumpIfNoStorage.
             && V->needsManagedAllocation())
          V->dump();
-         m_cppdumper->setTransaction(lastT);
+         m_SYCLCompiler->setTransaction(lastT);
          return Interpreter::kSuccess;
       } else {
         return Interpreter::kFailure;
       }
     }
-    m_cppdumper->setTransaction(lastT);
+    m_SYCLCompiler->setTransaction(lastT);
     return Interpreter::kSuccess;
   }
 
@@ -1456,7 +1456,7 @@ namespace cling {
   void Interpreter::unload(Transaction& T) {
     // Clear any stored states that reference the llvm::Module.
     // Do it first in case
-    m_cppdumper->removeCodeByTransaction(&T);
+    m_SYCLCompiler->removeCodeByTransaction(&T);
     auto Module = T.getModule();
     if (Module && !m_StoredStates.empty()) {
       const auto Predicate = [&Module](const ClangInternalState* S) {
@@ -1777,12 +1777,12 @@ namespace cling {
     T.setState(Transaction::kCommitted);
   }
 
-  void Interpreter::clearCppdumperNullTransaction() {
-    m_cppdumper->removeCodeByTransaction(NULL);
+  void Interpreter::clearSYCLCompilerNULLTransaction() {
+    m_SYCLCompiler->removeCodeByTransaction(NULL);
   }
 
-  void Interpreter::setExtractDeclFlag(bool flag) {
-    m_cppdumper->set_extract_decl_flag(flag);
+  void Interpreter::setSYCLCompilerExtractDeclFlag(bool flag) {
+    m_SYCLCompiler->setExtractDeclFlag(flag);
   }
 
   namespace runtime {

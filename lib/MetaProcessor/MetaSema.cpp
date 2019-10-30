@@ -41,7 +41,7 @@ namespace cling {
 
   MetaSema::ActionResult MetaSema::actOnLCommand(llvm::StringRef file,
                                              Transaction** transaction /*= 0*/){
-    m_Interpreter.setExtractDeclFlag(true);
+    m_Interpreter.setSYCLCompilerExtractDeclFlag(true);
     ActionResult result = actOnUCommand(file);
     if (result != AR_Success)
       return result;

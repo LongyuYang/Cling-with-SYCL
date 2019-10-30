@@ -97,7 +97,7 @@ add_cling_library(clingInterpreter OBJECT
   Value.cpp
   ValuePrinter.cpp
   ValuePrinterSynthesizer.cpp
-  Cppdumper.cpp
+  IncrementalSYCLDeviceCompiler.cpp
 
   DEPENDS
   ${CLING_DEPENDS}
