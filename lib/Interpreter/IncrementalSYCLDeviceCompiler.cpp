@@ -87,11 +87,20 @@ void IncrementalSYCLDeviceCompiler::submit() {
   for (auto &CodeEntry : EntryList) {
     std::string input(CodeEntry.code);
     if (CodeEntry.isStatement == 0) {
-      declCode = declCode + input + '\n';
+      declCode = declCode + input;
     } else {
       stmtCode = stmtCode + input;
-      for (auto sit = input.rbegin(); sit != input.rend(); sit++) {
-        if (*sit != ' ') {
+    }
+    for (auto sit = input.rbegin(); sit != input.rend(); sit++) {
+      if (*sit != ' ') {
+        if (CodeEntry.isStatement == 0) {
+          if (*sit == '}')
+            declCode += ";\n";
+          else
+            declCode += "\n";
+          break;
+        }
+        else {
           if (*sit == ';')
             stmtCode += '\n';
           else
@@ -117,7 +126,7 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input) {
     DumpOut.open("st.h", std::ios::in | std::ios::out | std::ios::trunc);
     DumpOut.close();
     int sysReturn =
-        std::system("clang++ -Wno-unused-value --sycl -fno-sycl-use-bitcode "
+        std::system("clang++ -w --sycl -fno-sycl-use-bitcode "
                     "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
     if (sysReturn != 0) {
       secureCode = false;
