@@ -824,6 +824,8 @@ namespace cling {
 
     void setSYCLCompilerExtractDeclFlag(bool);
 
+    void setSYCLCompilerClearFlag(bool);
+
     friend class runtime::internal::LifetimeHandler;
   };
 } // namespace cling

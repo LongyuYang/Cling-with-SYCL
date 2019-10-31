@@ -391,6 +391,8 @@ namespace cling {
       //fixme: SYCLmode
       "   " << metaString << "syclMode\t\t\t- Enable SYCL mode\n"
       "\n"
+      "   " << metaString << "ctstest\t\t\t- Enable CTSTest mode\n"
+      "\n"
       "   " << metaString << "help\t\t\t- Shows this information\n"
       "\n"
       "   " << metaString << "q\t\t\t\t- Exit the program\n"
@@ -516,5 +518,17 @@ namespace cling {
       printf("=======> libsycl loaded!\n");
     }
     setenv("SYCL_USE_KERNEL_SPV", "mk.spv", 1);
+  }
+
+
+  void MetaSema::actOnCTSCommand() const {
+    actOnSYCLmodeCommand();
+    /***
+    Please add the path of libctstest.so to LD_LIBRARY_PATH
+    ***/
+    if(m_Interpreter.loadLibrary("libctstest.so") == Interpreter::kSuccess) {
+      printf("=======> libctstest loaded!\n");
+    }
+    m_Interpreter.setSYCLCompilerClearFlag(true);
   }
 } // end namespace cling

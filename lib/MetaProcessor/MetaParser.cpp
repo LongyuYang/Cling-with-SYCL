@@ -133,7 +133,7 @@ namespace cling {
       || iscompareStateCommand() || isstatsCommand() || isundoCommand()
       || isRedirectCommand(actionResult) || istraceCommand()
       // fixme
-      || isprintMBCommand() || isSYCLmodeCommand();
+      || isprintMBCommand() || isSYCLmodeCommand() || isCTSCommand();
   }
 
   // L := 'L' FilePath Comment
@@ -682,6 +682,15 @@ namespace cling {
     const Token& Tok = getCurTok();
     if (Tok.getIdent().equals("syclMode")){
       m_Actions->actOnSYCLmodeCommand();
+      return true;
+    }
+    return false;
+  }
+
+  bool MetaParser::isCTSCommand(){
+    const Token& Tok = getCurTok();
+    if (Tok.getIdent().equals("ctstest")){
+      m_Actions->actOnCTSCommand();
       return true;
     }
     return false;

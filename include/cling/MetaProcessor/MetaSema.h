@@ -252,6 +252,8 @@ namespace cling {
     // fixme: 
     void actOnSYCLmodeCommand() const;
 
+    void actOnCTSCommand() const;
+
   };
 
 } // end namespace cling
