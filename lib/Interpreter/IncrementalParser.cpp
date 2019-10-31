@@ -536,6 +536,8 @@ namespace cling {
         Diags.Reset(/*soft=*/true);
         if (ClearDiagClient)
           Diags.getClient()->clear();
+      }
+      if (PRT.getInt() == kFailed) {
         m_Interpreter->clearSYCLCompilerNULLTransaction();
       }
       return;
