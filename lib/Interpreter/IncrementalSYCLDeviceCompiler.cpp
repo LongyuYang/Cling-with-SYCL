@@ -25,10 +25,19 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
 }
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   delete HeadTransaction;
+  if(ClearFlag){
+    remove("dump.cpp");
+    remove("st.h");
+    remove("mk.spv");
+  }
 }
 
 void IncrementalSYCLDeviceCompiler::setExtractDeclFlag(const bool flag) {
   ExtractDeclFlag = flag;
+}
+
+void IncrementalSYCLDeviceCompiler::setClearFlag(const bool flag) {
+  ClearFlag = flag;
 }
 
 bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,

@@ -41,11 +41,13 @@ private:
   ///
   Transaction **HeadTransaction = 0;
   bool secureCode;
+  bool ClearFlag = false;
 
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
   ~IncrementalSYCLDeviceCompiler();
   void setExtractDeclFlag(const bool flag);
+  void setClearFlag(const bool flag);
   bool dump(const std::string &input, Transaction *T, unsigned int isStatement,
             size_t wrap_point, bool declSuccess = false);
   bool dump(const std::string &input, Transaction *T, unsigned int isStatement,
