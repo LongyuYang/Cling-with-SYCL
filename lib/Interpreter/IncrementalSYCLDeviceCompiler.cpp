@@ -54,11 +54,6 @@ bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
                                          bool declSuccess /* = false*/) {
   if ((isStatement == 0) && (!ExtractDeclFlag))
     return true;
-  if (isStatement == 0) {
-    EntryList.push_back(DumpCodeEntry(isStatement, input, T, declSuccess));
-    submit();
-    return compile(input);
-  }
   std::istringstream input_holder(input);
   std::string line;
   std::string complete_input;
@@ -72,7 +67,7 @@ bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
     complete_input.clear();
     m_InputValidator->reset(&complete_input);
     size_t wrapPoint = std::string::npos;
-    wrapPoint = utils::getWrapPoint(complete_input,
+    wrapPoint = utils::getSyclWrapPoint(complete_input,
                                     m_Interpreter->getCI()->getLangOpts());
     if (wrapPoint == std::string::npos)
       EntryList.push_back(DumpCodeEntry(0, complete_input, T));

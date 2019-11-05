@@ -48,6 +48,7 @@ namespace utils {
   /// \return The position where the function signature and '{' should be
   ///     inserted; std::string::npos if this source should not be wrapped.
   size_t getWrapPoint(std::string& source, const clang::LangOptions& LangOpts);
+  size_t getSyclWrapPoint(std::string& source, const clang::LangOptions& LangOpts);
   bool generate_hppandspv(std::string& input, const clang::LangOptions& LangOpts);
   bool incremental_generate_headfile(std::string& input,const clang::LangOptions& LangOpts);
 } // namespace utils
