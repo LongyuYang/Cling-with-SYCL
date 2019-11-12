@@ -1295,7 +1295,7 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    if (!m_SYCLCompiler->dump(input, NULL, 0)){
+    if (!m_SYCLCompiler->dump(input, NULL, 0, std::string::npos)){
       return kFailure;
     }
     

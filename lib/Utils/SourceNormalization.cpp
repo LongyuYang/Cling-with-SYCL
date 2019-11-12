@@ -679,8 +679,10 @@ size_t cling::utils::getSyclWrapPoint(std::string &source,
     if (Tok.is(tok::l_brace) || Tok.is(tok::l_paren) || Tok.is(tok::l_square))
       return 1;
     if (Tok.is(tok::raw_identifier)) {
-      if (Tok.getRawIdentifier().equals("constexpr")||Tok.getRawIdentifier().equals("const"))
+      if (Tok.getRawIdentifier().equals("constexpr")||Tok.getRawIdentifier().equals("const")) {
+        source += ";";
         return 0;
+      }
     }
   }
 }
