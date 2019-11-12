@@ -25,6 +25,7 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
 }
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   delete HeadTransaction;
+  m_InputValidator.reset(0);
   if(ClearFlag){
     remove("dump.cpp");
     remove("st.h");
@@ -38,13 +39,6 @@ void IncrementalSYCLDeviceCompiler::setExtractDeclFlag(const bool flag) {
 
 void IncrementalSYCLDeviceCompiler::setClearFlag(const bool flag) {
   ClearFlag = flag;
-}
-
-bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
-                                         Transaction *T,
-                                         unsigned int isStatement,
-                                         bool declSuccess /* = false*/) {
-  return dump(input, T, isStatement, std::string::npos, declSuccess);
 }
 
 bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
@@ -104,10 +98,10 @@ void IncrementalSYCLDeviceCompiler::submit() {
     for (auto sit = input.rbegin(); sit != input.rend(); sit++) {
       if (*sit != ' ') {
         if (CodeEntry.isStatement == 0) {
-          if (*sit == ';')
-            declCode += '\n';
-          else
+          if (*sit == '}')
             declCode += ";\n";
+          else
+            declCode += "\n";
           break;
         }
         else {

@@ -50,8 +50,6 @@ public:
   void setClearFlag(const bool flag);
   bool dump(const std::string &input, Transaction *T, unsigned int isStatement,
             size_t wrap_point, bool declSuccess = false);
-  bool dump(const std::string &input, Transaction *T, unsigned int isStatement,
-            bool declSuccess = false);
   void submit();
   bool compile(const std::string &input);
   void setTransaction(Transaction *T);
