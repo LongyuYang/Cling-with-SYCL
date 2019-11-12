@@ -104,10 +104,10 @@ void IncrementalSYCLDeviceCompiler::submit() {
     for (auto sit = input.rbegin(); sit != input.rend(); sit++) {
       if (*sit != ' ') {
         if (CodeEntry.isStatement == 0) {
-          if (*sit == '}')
-            declCode += ";\n";
+          if (*sit == ';')
+            declCode += '\n';
           else
-            declCode += "\n";
+            declCode += ";\n";
           break;
         }
         else {
