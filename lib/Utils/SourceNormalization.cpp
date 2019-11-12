@@ -664,143 +664,23 @@ size_t cling::utils::getWrapPoint(std::string& source,
 }
 
 
-size_t cling::utils::getSyclWrapPoint(std::string& source,
-                                  const clang::LangOptions& LangOpts) {
-  // TODO: For future reference.
-  // Parser* P = const_cast<clang::Parser*>(m_IncrParser->getParser());
-  // Parser::TentativeParsingAction TA(P);
-  // TPResult result = P->isCXXDeclarationSpecifier();
-  // TA.Revert();
-  // return result == TPResult::True();
+size_t cling::utils::getSyclWrapPoint(std::string &source,
+                                      const clang::LangOptions &LangOpts) {
 
   MinimalPPLexer Lex(LangOpts, source);
   Token Tok;
-  //printf("Source: %s\n",source.c_str());
+
   while (true) {
     bool atEOF = Lex.Lex(Tok);
-    if (Lex.inPPDirective() || Tok.is(tok::eod)) {
-      if (atEOF)
-        break;
-      continue; // Skip PP directives; they just move the wrap point.
+    if (atEOF)
+      return 1;
+    if (Tok.is(tok::semi))
+      return 1;
+    if (Tok.is(tok::l_brace) || Tok.is(tok::l_paren) || Tok.is(tok::l_square))
+      return 1;
+    if (Tok.is(tok::raw_identifier)) {
+      if (Tok.getRawIdentifier().equals("constexpr")||Tok.getRawIdentifier().equals("const"))
+        return 0;
     }
-
-    if (Tok.is(tok::eof)) {
-      // Reached EOF before seeing a non-preproc token.
-      // Nothing to wrap.
-      return std::string::npos;
-    }
-
-    // Prior behavior was to return getFileOffset, which was only used as an
-    // in a test against std::string::npos. By returning 0 we preserve prior
-    // behavior to pass the test against std::string::npos and wrap everything
-    const size_t offset = 0;
-    //printf("Tokname: %s\n",tok::getTokenName(Tok.getKind()));
-    // Check, if a function with c++ attributes should be defined.
-    while (Tok.getKind() == tok::l_square) {
-      Lex.Lex(Tok);
-      // Check, if attribute starts with '[['
-      if (Tok.getKind() != tok::l_square) {
-        return offset;
-      }
-      // Check, if the second '[' is closing.
-      if (!Lex.CheckBalance(Tok)) {
-        return offset;
-      }
-      Lex.Lex(Tok);
-      // Check, if the first '[' is closing.
-      if (Tok.getKind() != tok::r_square) {
-        return offset;
-      }
-      Lex.Lex(Tok);
-    }
-
-    const tok::TokenKind kind = Tok.getKind();
-
-    if (kind == tok::raw_identifier && !Tok.needsCleaning()) {
-      StringRef keyword(Tok.getRawIdentifier());
-      //printf("ID: %s off:%d\n",Tok.getRawIdentifier().str().c_str(),getFileOffset(Tok));
-      if (keyword.equals("using")) {
-        // FIXME: Using definitions and declarations should be decl extracted.
-        // Until we have that, don't wrap them if they are the only input.
-        while (true) {
-          bool atEOF = Lex.Lex(Tok);
-          if(atEOF)
-            return std::string::npos;
-          if (Tok.is(tok::semi))
-            return getFileOffset(Tok) + 1;
-          if (Tok.is(tok::equal))
-            return 0;
-        }
-      }
-      if (keyword.equals("extern"))
-        return std::string::npos;
-      if (keyword.equals("namespace"))
-        return std::string::npos;
-      if (keyword.equals("template"))
-        return std::string::npos;
-
-      if (const MinimalPPLexer::DefinitionType T =
-                                          Lex.IsClassOrFunction(Tok, keyword)) {
-        assert(Tok.is(tok::l_brace) && "Lexer begin location invalid");
-        if (!Lex.CheckBalance(Tok))
-          return offset;
-        assert(Tok.is(tok::r_brace) && "Lexer end location invalid");
-
-        const size_t rBrace = getFileOffset(Tok);
-        // Wrap everything after '}'
-        bool atEOF = !Lex.LexClean(Tok);
-        bool hadSemi = Tok.is(tok::semi);
-        size_t wrapPoint = getFileOffset(Tok);
-        if (!atEOF) {
-          if (hadSemi) {
-            atEOF = !Lex.LexClean(Tok);
-            if (!atEOF) {
-              // Wrap everything after ';'
-              wrapPoint = getFileOffset(Tok);
-            }
-          } else if (T == MinimalPPLexer::kClass) {
-            // 'struct T {} t     '
-            // 'struct E {} t = {}'
-            // Value print: We want to preserve Tok.is(tok::raw_identifier)
-            // unless the statement was terminated by a semi-colon anyway.
-            Token Tok2;
-            atEOF = Lex.AdvanceTo(Tok2, tok::semi);
-            if ((hadSemi = Tok2.is(tok::semi)))
-              Tok = Tok2;
-          }
-        }
-
-        // If nothing left to lex, then don't wrap any of it
-        if (atEOF) {
-          if (T == MinimalPPLexer::kClass) {
-            if (!hadSemi) {
-              // Support lack of semi-colon value printing 'struct T {} t'
-              if (Tok.is(tok::raw_identifier))
-                return 0;
-              if (!LangOpts.HeinousExtensions) {
-                // Let's fix 'class NoTerminatingSemi { ... }' for them!
-                // ### TODO DiagnosticOptions.ShowFixits might be better
-                source.insert(rBrace+1, ";");
-                return source.size();
-              }
-            }
-          }
-          return std::string::npos;
-        }
-
-        return wrapPoint;
-      }
-
-      // There is something else here that needs to be wrapped.
-      return offset;
-    }
-
-    // FIXME: in the future, continue lexing to extract relevant PP directives;
-    // return wrapPoint
-    // There is something else here that needs to be wrapped.
-    return offset;
   }
-
-  // We have only had PP directives; no need to wrap.
-  return std::string::npos;
 }

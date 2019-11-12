@@ -67,18 +67,24 @@ bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
     complete_input.clear();
     m_InputValidator->reset(&complete_input);
     size_t wrapPoint = std::string::npos;
-    wrapPoint = utils::getSyclWrapPoint(complete_input,
+    wrapPoint = utils::getWrapPoint(complete_input,
                                     m_Interpreter->getCI()->getLangOpts());
     if (wrapPoint == std::string::npos)
       EntryList.push_back(DumpCodeEntry(0, complete_input, T));
-    else if (wrapPoint == 0)
-      EntryList.push_back(DumpCodeEntry(1, complete_input, T));
+    else if (wrapPoint == 0){
+      int wheretodump = utils::getSyclWrapPoint(
+          complete_input, m_Interpreter->getCI()->getLangOpts());
+      EntryList.push_back(DumpCodeEntry(wheretodump, complete_input, T));
+    }
     else {
       EntryList.push_back(
           DumpCodeEntry(0, complete_input.substr(0, wrapPoint), T));
       submit();
+      std::string wrappedinput(complete_input.substr(wrapPoint));
+      int wheretodump = utils::getSyclWrapPoint(
+          wrappedinput, m_Interpreter->getCI()->getLangOpts());
       EntryList.push_back(
-          DumpCodeEntry(1, complete_input.substr(wrapPoint), T));
+          DumpCodeEntry(wheretodump, wrappedinput, T));
     }
     submit();
   }
