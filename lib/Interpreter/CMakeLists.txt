@@ -8,6 +8,7 @@
 
 set(CLING_DEPEND_LIBS
   clangAnalysis
+  clangTooling
   clangAST
   clangBasic
   clangCodeGen
