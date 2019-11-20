@@ -935,6 +935,12 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
       cling::errs() << "Could not get cc1 arguments.\n";
       return nullptr;
     }
+    // Dump the args to a file for initialization of CompilerInstance of SYCLDeviceCompiler
+    std::error_code EC;
+    llvm::raw_fd_ostream ArgFile("args", EC, llvm::sys::fs::F_Text); 
+    for (auto it = CC1Args->begin(); it != CC1Args->end(); it++)
+      ArgFile << *it << "\n";
+    ArgFile.close();
 
     clang::CompilerInvocation::CreateFromArgs(*InvocationPtr, CC1Args->data() + 1,
                                               CC1Args->data() + CC1Args->size(),

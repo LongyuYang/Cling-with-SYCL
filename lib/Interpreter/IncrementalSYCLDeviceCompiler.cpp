@@ -58,6 +58,70 @@
 
 using namespace clang;
 namespace cling {
+
+class InterpreterConsumer : public ASTConsumer {
+private:
+  std::string &DumpText;
+  const ASTContext &m_context;
+  static size_t m_counter;
+  static size_t m_clingCounter;
+
+public:
+  explicit InterpreterConsumer(const ASTContext &context, std::string &S)
+      : DumpText(S), m_context(context) {}
+  virtual ~InterpreterConsumer() {}
+  bool HandleTopLevelDecl(clang::DeclGroupRef DGR) {
+    llvm::raw_string_ostream dump(DumpText);
+    for (auto it = DGR.begin(); it != DGR.end(); it++) {
+      Decl *D = *it;
+      if (D->isFunctionOrFunctionTemplate()) {
+        FunctionDecl *FD = cast<FunctionDecl>(D);
+        if (FD->getNameAsString().compare(
+          std::string("__cling_Un1Qu3") + std::to_string(m_clingCounter)) != 0)
+          continue;
+        m_clingCounter++;
+        CompoundStmt *CS = dyn_cast<CompoundStmt>(FD->getBody());
+        for (CompoundStmt::body_iterator I = CS->body_begin(),
+                                         EI = CS->body_end();
+             I != EI; ++I) {
+          DeclStmt *DS = dyn_cast<DeclStmt>(*I);
+          if (!DS) {
+            dump << std::string("void __cling_wrapper__costom__") +
+                            std::to_string(++m_counter) + std::string("(){\n");
+            (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
+            dump << ";\n}\n";
+            continue;
+          }
+          for (DeclStmt::decl_iterator J = DS->decl_begin();
+               J != DS->decl_end(); ++J) {
+            (*J)->print(dump);
+            dump << ";\n";
+          }
+        }
+        break;
+      }
+    }
+    dump.flush();
+    return true;
+  }
+};
+size_t InterpreterConsumer::m_counter = 0;
+size_t InterpreterConsumer::m_clingCounter = 0;
+
+class InterpreterClassAction : public ASTFrontendAction {
+  std::string &DumpText;
+
+public:
+  explicit InterpreterClassAction(std::string &S) : DumpText(S) {}
+  virtual std::unique_ptr<clang::ASTConsumer>
+  CreateASTConsumer(clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
+    InterpreterConsumer *consumer =
+        new InterpreterConsumer(Compiler.getASTContext(), DumpText);
+    return std::unique_ptr<clang::ASTConsumer>(consumer);
+  }
+};
+
+
 DumpCodeEntry::DumpCodeEntry(unsigned int isStatement, const std::string &input,
                              Transaction *T, bool declSuccess /* = false*/)
     : isStatement(isStatement), code(input), CurT(T), declSuccess(declSuccess) {
@@ -67,21 +131,22 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
     Interpreter *interp)
     : m_Interpreter(interp) {
   m_InputValidator.reset(new InputValidator());
-  m_Ctran.reset(new Cpptransformer());
   HeadTransaction = new Transaction *;
   *HeadTransaction = NULL;
   secureCode = false;
   DumpOut.open("dump.cpp", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
 }
+
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   delete HeadTransaction;
   m_InputValidator.reset(0);
-  m_Ctran.reset(0);
   if (ClearFlag) {
     remove("dump.cpp");
     remove("st.h");
     remove("mk.spv");
+    remove("args");
+    remove("tmp.cpp");
   }
 }
 
@@ -93,13 +158,16 @@ void IncrementalSYCLDeviceCompiler::setClearFlag(const bool flag) {
   ClearFlag = flag;
 }
 
-bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
+bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
                                          Transaction *T,
                                          unsigned int isStatement,
                                          size_t wrap_point,
                                          bool declSuccess /* = false*/) {
   if ((isStatement == 0) && (!ExtractDeclFlag))
     return true;
+  EntryList.push_back(DumpCodeEntry(isStatement, input, T));
+  //fixme
+  /*
   std::istringstream input_holder(input);
   std::string line;
   std::string complete_input;
@@ -124,53 +192,98 @@ bool IncrementalSYCLDeviceCompiler::dump(const std::string &input,
     } else {
       EntryList.push_back(
           DumpCodeEntry(0, complete_input.substr(0, wrapPoint), T));
-      submit();
       std::string wrappedinput(complete_input.substr(wrapPoint));
       int wheretodump = utils::getSyclWrapPoint(
           wrappedinput, m_Interpreter->getCI()->getLangOpts());
       EntryList.push_back(DumpCodeEntry(wheretodump, wrappedinput, T));
     }
-    submit();
   }
-  return compile(input);
+  */
+  return compileImpl(input);
 }
 
-void IncrementalSYCLDeviceCompiler::submit() {
-  std::string declCode;
-  std::string stmtCode;
+void IncrementalSYCLDeviceCompiler::dump(const std::string& target) {
+  std::error_code EC;
+  llvm::raw_fd_ostream File(target, EC, llvm::sys::fs::F_Text);
   for (auto &CodeEntry : EntryList) {
-    std::string input(CodeEntry.code);
-    if (CodeEntry.isStatement == 0) {
-      declCode = declCode + input;
-    } else {
-      stmtCode = stmtCode + input;
-    }
-    for (auto sit = input.rbegin(); sit != input.rend(); sit++) {
+    File << CodeEntry.code;
+    for (auto sit = CodeEntry.code.rbegin(); sit !=CodeEntry.code.rend(); sit++) {
       if (*sit != ' ') {
         if (CodeEntry.isStatement == 0) {
           if (*sit == '}')
-            declCode += ";\n";
+            File << ";\n";
           else
-            declCode += "\n";
+            File << "\n";
           break;
-        } else {
+        }
+        else {
           if (*sit == ';')
-            stmtCode += '\n';
+            File << '\n';
           else
-            stmtCode += ";\n";
+            File << ";\n";
           break;
         }
       }
     }
   }
-  DumpOut.open("dump.cpp", std::ios::in | std::ios::out | std::ios::trunc);
-  DumpOut.seekp(0, std::ios::beg);
-  DumpOut << declCode << "int main(){\n" + stmtCode + "}";
-  DumpOut.close();
+  File.close();
   ExtractDeclFlag = false;
 }
 
-bool IncrementalSYCLDeviceCompiler::compile(const std::string &input) {
+
+bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
+  // Dump the code of every CodeEntry
+  dump("tmp.cpp");
+
+  // Initialize CompilerInstance
+  CompilerInstance* CI = new CompilerInstance();
+  CI->createDiagnostics();
+  assert(CI->hasDiagnostics());
+
+  // Read args from file that is dumped by CIFactory
+  std::ifstream ArgsFile;
+  ArgsFile.open("args");
+  std::ostringstream ArgsTmp;
+  ArgsTmp << ArgsFile.rdbuf();
+  std::string ArgsContent = ArgsTmp.str();
+  size_t position = -1, lastPosition;
+  std::vector<const char*> Args;
+  bool findValidArg = false;
+  while (true) {
+    lastPosition = position + 1;
+    position = ArgsContent.find('\n', lastPosition);
+    if (position == std::string::npos) break;
+    const std::string arg = ArgsContent.substr(lastPosition, position - lastPosition);
+    if (arg[0] == '-') {
+      findValidArg = false;
+    }
+    if (findValidArg || arg == "-cxx-isystem" || arg == "-internal-isystem"
+        || arg == "-internal-externc-isystem" || arg.substr(0, 8) == "-std=c++"
+        || arg.substr(0, 2) == "-f" || arg == "-x") {
+      char* argCString = new char[arg.size() + 1];
+      strcpy(argCString, arg.c_str());
+      Args.push_back(argCString);
+      findValidArg = true;
+    }
+  }
+  Args.push_back("-w");
+  Args.push_back("tmp.cpp");
+  clang::CompilerInvocation::CreateFromArgs(CI->getInvocation(), Args.data(),
+                                              Args.data() + Args.size(),
+                                              CI->getDiagnostics());
+
+  std::string tmp;
+  FrontendAction *action = new InterpreterClassAction(tmp);
+  if (!CI->ExecuteAction(*action)) {
+    return false;
+  }
+  //fix me:
+  if (EntryList.rbegin()->isStatement){
+    EntryList.rbegin()->code = tmp;
+  }
+  dump("dump.cpp");
+  delete action;
+  delete CI;
   std::string _hsinput(input);
   // bool head_spv_flg =
   // utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
@@ -239,93 +352,5 @@ void IncrementalSYCLDeviceCompiler::removeCodeByTransaction(Transaction *T) {
     }
   }
 }
-
-class InterpreterConsumer : public ASTConsumer {
-  std::string &DumpText;
-  const ASTContext &m_context;
-  int m_counter = 0;
-
-public:
-  explicit InterpreterConsumer(const ASTContext &context, std::string &S)
-      : DumpText(S), m_context(context) {}
-  virtual ~InterpreterConsumer() {}
-  bool HandleTopLevelDecl(clang::DeclGroupRef DGR) {
-    // printf("%x\n",m_Sema);
-    // DeclExtractor * m_DE = new DeclExtractor(m_Sema);
-    printf("yes\n");
-    llvm::raw_string_ostream dump(DumpText);
-    for (auto it = DGR.begin(); it != DGR.end(); it++) {
-      Decl *D = *it;
-      if (D->isFunctionOrFunctionTemplate()) {
-        FunctionDecl *FD = cast<FunctionDecl>(D);
-        if (FD->getNameAsString().compare("main") != 0)
-          continue;
-        printf("%d\n", utils::Analyze::IsWrapper(FD));
-        CompoundStmt *CS = dyn_cast<CompoundStmt>(FD->getBody());
-        for (CompoundStmt::body_iterator I = CS->body_begin(),
-                                         EI = CS->body_end();
-             I != EI; ++I) {
-          DeclStmt *DS = dyn_cast<DeclStmt>(*I);
-          if (!DS) {
-            printf("get stmt!!!\n");
-            DumpText.append(std::string("void __cling_wrapper__costom__") +
-                            std::to_string(++m_counter) + std::string("(){\n"));
-            (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
-            dump.flush();
-            DumpText.append(";\n}\n");
-            dump.flush();
-            continue;
-          }
-          for (DeclStmt::decl_iterator J = DS->decl_begin();
-               J != DS->decl_end(); ++J) {
-            printf("get decl!!!!\n");
-            (*J)->print(dump);
-            dump.flush();
-            DumpText.append(";\n");
-            dump.flush();
-          }
-        }
-      }
-      dump.flush();
-      return true;
-    }
-  }
-};
-
-class InterpreterClassAction : public ASTFrontendAction {
-  std::string &DumpText;
-
-public:
-  explicit InterpreterClassAction(std::string &S) : DumpText(S) {}
-  virtual std::unique_ptr<clang::ASTConsumer>
-  CreateASTConsumer(clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
-    InterpreterConsumer *consumer =
-        new InterpreterConsumer(Compiler.getASTContext(), DumpText);
-    return std::unique_ptr<clang::ASTConsumer>(consumer);
-  }
-};
-
-Cpptransformer::Cpptransformer() {
-  
-  CompilerInstance compiler;
-  compiler.createDiagnostics();
-  assert(compiler.hasDiagnostics());
-  const char *args[] = {"-std=c++14", "a.cpp"};
-
-  clang::CompilerInvocation::CreateFromArgs(
-      compiler.getInvocation(), args, args + 2, compiler.getDiagnostics());
-  assert(0 == compiler.getDiagnostics().getErrorsAsFatal());
-  std::string tmp;
-  FrontendAction *action = new InterpreterClassAction(tmp);
-  if (compiler.ExecuteAction(*action)) {
-    std::cout << "ok:";
-  } else {
-    std::cout << "error:";
-  }
-  printf("modified:\n%s\n",tmp.c_str());
-  
-}
-
-Cpptransformer::~Cpptransformer() {}
 
 } // namespace cling
