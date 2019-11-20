@@ -47,27 +47,6 @@ public:
                 Transaction *T, bool declSuccuss = false);
 };
 
-class Cpptransformer {
-private:
-  Interpreter *m_Interp;
-  std::list<DumpCodeEntry> EntryList;
-  std::ofstream DumpOut;
-  unsigned int m_ModuleNo = 0;
-  DeclCollector *m_Consumer;
-  clang::CodeGenerator *m_CodeGen = nullptr;
-  std::unique_ptr<clang::Parser> m_Parser;
-  std::deque<std::pair<llvm::MemoryBuffer *, clang::FileID>> m_MemoryBuffers;
-  using ModuleFileExtensions =
-      std::vector<std::shared_ptr<clang::ModuleFileExtension>>;
-
-public:
-  std::unique_ptr<clang::CompilerInstance> m_CI;
-  Cpptransformer();
-  ~Cpptransformer();
-  void Initialize();
-  void parse(llvm::StringRef input);
-};
-
 ///\brief The class is responsible for dump cpp code into dump.cpp
 /// and then to be compiled by syclcompiler
 class IncrementalSYCLDeviceCompiler {
@@ -83,20 +62,20 @@ private:
   Transaction **HeadTransaction = 0;
   bool secureCode;
   bool ClearFlag = false;
-  std::unique_ptr<Cpptransformer> m_Ctran;
 
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
   ~IncrementalSYCLDeviceCompiler();
   void setExtractDeclFlag(const bool flag);
   void setClearFlag(const bool flag);
-  bool dump(const std::string &input, Transaction *T, unsigned int isStatement,
+  bool compile(const std::string &input, Transaction *T, unsigned int isStatement,
             size_t wrap_point, bool declSuccess = false);
-  void submit();
-  bool compile(const std::string &input);
   void setTransaction(Transaction *T);
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
+private:
+  void dump(const std::string& target);
+  bool compileImpl(const std::string &input);
 };
 
 

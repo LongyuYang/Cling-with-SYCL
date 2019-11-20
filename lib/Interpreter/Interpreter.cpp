@@ -1295,7 +1295,7 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    if (!m_SYCLCompiler->dump(input, NULL, 0, std::string::npos)){
+    if (!m_SYCLCompiler->compile(input, NULL, 0, std::string::npos)){
       return kFailure;
     }
     
@@ -1318,9 +1318,7 @@ namespace cling {
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
     StateDebuggerRAII stateDebugger(this);
-    if (!m_SYCLCompiler->dump(input, NULL, 1, wrapPoint)){
-      return kFailure;
-    }
+    
 
     // Wrap the expression
     std::string WrapperBuffer;
@@ -1330,6 +1328,9 @@ namespace cling {
     // non-default C++ at the prompt:
     CO.IgnorePromptDiags = 1;
     //printf("compiled_wrapper:%s\n",Wrapper.c_str());
+    if (!m_SYCLCompiler->compile(Wrapper, NULL, 1, wrapPoint)){
+      return kFailure;
+    }
     IncrementalParser::ParseResultTransaction PRT
       = m_IncrParser->Compile(Wrapper, CO);
     Transaction* lastT = PRT.getPointer();
