@@ -243,8 +243,6 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
 
   // Initialize CompilerInstance
   CompilerInstance* CI = new CompilerInstance();
-  CI->createDiagnostics();
-  assert(CI->hasDiagnostics());
 
   // Read args from file that is dumped by CIFactory
   std::ifstream ArgsFile;
@@ -272,11 +270,15 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
       findValidArg = true;
     }
   }
+  Args.push_back("-w");
   Args.push_back("tmp.cpp");
-  //to do: suppress warnings
   clang::CompilerInvocation::CreateFromArgs(CI->getInvocation(), Args.data(),
                                               Args.data() + Args.size(),
                                               CI->getDiagnostics());
+
+  //create Diagnostics after create args to suppress all warnings
+  CI->createDiagnostics();
+  assert(CI->hasDiagnostics());
 
   std::string tmp;
   FrontendAction *action = new InterpreterClassAction(tmp, input);
