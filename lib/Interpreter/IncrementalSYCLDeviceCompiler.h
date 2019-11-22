@@ -62,6 +62,7 @@ private:
   Transaction **HeadTransaction = 0;
   bool secureCode;
   bool ClearFlag = false;
+  std::vector<const char*> Args;
 
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
