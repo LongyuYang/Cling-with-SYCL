@@ -142,6 +142,35 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   secureCode = false;
   DumpOut.open("dump.cpp", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
+
+  // Read args from file that is dumped by CIFactory
+  std::ifstream ArgsFile;
+  ArgsFile.open("args");
+  std::ostringstream ArgsTmp;
+  ArgsTmp << ArgsFile.rdbuf();
+  ArgsFile.close();
+  std::string ArgsContent = ArgsTmp.str();
+  size_t position = -1, lastPosition;
+  bool findValidArg = false;
+  while (true) {
+    lastPosition = position + 1;
+    position = ArgsContent.find('\n', lastPosition);
+    if (position == std::string::npos) break;
+    const std::string arg = ArgsContent.substr(lastPosition, position - lastPosition);
+    if (arg[0] == '-') {
+      findValidArg = false;
+    }
+    if (findValidArg || arg == "-cxx-isystem" || arg == "-internal-isystem"
+        || arg == "-internal-externc-isystem" || arg.substr(0, 8) == "-std=c++"
+        || arg.substr(0, 2) == "-f" || arg == "-x") {
+      char* argCString = new char[arg.size() + 1];
+      strcpy(argCString, arg.c_str());
+      Args.push_back(argCString);
+      findValidArg = true;
+    }
+  }
+  Args.push_back("-w");
+  Args.push_back("tmp.cpp");
 }
 
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
@@ -242,36 +271,7 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   dump("tmp.cpp");
 
   // Initialize CompilerInstance
-  CompilerInstance* CI = new CompilerInstance();
-
-  // Read args from file that is dumped by CIFactory
-  std::ifstream ArgsFile;
-  ArgsFile.open("args");
-  std::ostringstream ArgsTmp;
-  ArgsTmp << ArgsFile.rdbuf();
-  std::string ArgsContent = ArgsTmp.str();
-  size_t position = -1, lastPosition;
-  std::vector<const char*> Args;
-  bool findValidArg = false;
-  while (true) {
-    lastPosition = position + 1;
-    position = ArgsContent.find('\n', lastPosition);
-    if (position == std::string::npos) break;
-    const std::string arg = ArgsContent.substr(lastPosition, position - lastPosition);
-    if (arg[0] == '-') {
-      findValidArg = false;
-    }
-    if (findValidArg || arg == "-cxx-isystem" || arg == "-internal-isystem"
-        || arg == "-internal-externc-isystem" || arg.substr(0, 8) == "-std=c++"
-        || arg.substr(0, 2) == "-f" || arg == "-x") {
-      char* argCString = new char[arg.size() + 1];
-      strcpy(argCString, arg.c_str());
-      Args.push_back(argCString);
-      findValidArg = true;
-    }
-  }
-  Args.push_back("-w");
-  Args.push_back("tmp.cpp");
+  CompilerInstance* CI = new CompilerInstance();  
   clang::CompilerInvocation::CreateFromArgs(CI->getInvocation(), Args.data(),
                                               Args.data() + Args.size(),
                                               CI->getDiagnostics());
