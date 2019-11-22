@@ -63,12 +63,13 @@ class InterpreterConsumer : public ASTConsumer {
 private:
   std::string &DumpText;
   const ASTContext &m_context;
+  std::string m_text;
   static size_t m_counter;
   static size_t m_clingCounter;
 
 public:
-  explicit InterpreterConsumer(const ASTContext &context, std::string &S)
-      : DumpText(S), m_context(context) {}
+  explicit InterpreterConsumer(const ASTContext &context, std::string &S, const std::string& originalText)
+      : DumpText(S), m_context(context), m_text(originalText) {}
   virtual ~InterpreterConsumer() {}
   bool HandleTopLevelDecl(clang::DeclGroupRef DGR) {
     llvm::raw_string_ostream dump(DumpText);
@@ -86,10 +87,10 @@ public:
              I != EI; ++I) {
           DeclStmt *DS = dyn_cast<DeclStmt>(*I);
           if (!DS) {
-            dump << std::string("void __cling_wrapper__costom__") +
-                            std::to_string(++m_counter) + std::string("(){\n");
-            (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
-            dump << ";\n}\n";
+            // dump << std::string("void __cling_wrapper__costom__") +
+            //                 std::to_string(++m_counter) + std::string("(){\n");
+            // (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
+            // dump << ";\n}\n";
             continue;
           }
           for (DeclStmt::decl_iterator J = DS->decl_begin();
@@ -98,6 +99,9 @@ public:
             dump << ";\n";
           }
         }
+        dump << std::string("void __cling_wrapper__costom__") +
+                            std::to_string(++m_counter) + std::string("(){\n");
+        dump << m_text.substr(m_text.find("void* vpClingValue) {") + 21);
         break;
       }
     }
@@ -110,13 +114,15 @@ size_t InterpreterConsumer::m_clingCounter = 0;
 
 class InterpreterClassAction : public ASTFrontendAction {
   std::string &DumpText;
+  std::string m_text;
 
 public:
-  explicit InterpreterClassAction(std::string &S) : DumpText(S) {}
+  explicit InterpreterClassAction(std::string &S, const std::string originalText) : 
+  DumpText(S), m_text(originalText) {}
   virtual std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
     InterpreterConsumer *consumer =
-        new InterpreterConsumer(Compiler.getASTContext(), DumpText);
+        new InterpreterConsumer(Compiler.getASTContext(), DumpText, m_text);
     return std::unique_ptr<clang::ASTConsumer>(consumer);
   }
 };
@@ -207,7 +213,7 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string& target) {
   llvm::raw_fd_ostream File(target, EC, llvm::sys::fs::F_Text);
   for (auto &CodeEntry : EntryList) {
     File << CodeEntry.code;
-    for (auto sit = CodeEntry.code.rbegin(); sit !=CodeEntry.code.rend(); sit++) {
+    for (auto sit = CodeEntry.code.rbegin(); sit != CodeEntry.code.rend(); sit++) {
       if (*sit != ' ') {
         if (CodeEntry.isStatement == 0) {
           if (*sit == '}')
@@ -266,15 +272,16 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
       findValidArg = true;
     }
   }
-  Args.push_back("-w");
   Args.push_back("tmp.cpp");
+  //to do: suppress warnings
   clang::CompilerInvocation::CreateFromArgs(CI->getInvocation(), Args.data(),
                                               Args.data() + Args.size(),
                                               CI->getDiagnostics());
 
   std::string tmp;
-  FrontendAction *action = new InterpreterClassAction(tmp);
+  FrontendAction *action = new InterpreterClassAction(tmp, input);
   if (!CI->ExecuteAction(*action)) {
+    removeCodeByTransaction(NULL);
     return false;
   }
   //fix me:
