@@ -629,6 +629,7 @@ namespace cling {
     // Add all the new entries into Preprocessor
     for (const size_t N = HOpts.UserEntries.size(); Idx < N; ++Idx) {
       const HeaderSearchOptions::Entry& E = HOpts.UserEntries[Idx];
+      m_SYCLCompiler->addCompileArg("-I", E.Path);
       if (const clang::DirectoryEntry *DE = FM.getDirectory(E.Path)) {
         HSearch.AddSearchPath(DirectoryLookup(DE, SrcMgr::C_User, isFramework),
                               E.Group == frontend::Angled);

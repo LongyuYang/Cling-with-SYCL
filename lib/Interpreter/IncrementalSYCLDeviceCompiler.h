@@ -62,24 +62,26 @@ private:
   Transaction **HeadTransaction = 0;
   bool secureCode;
   bool ClearFlag = false;
-  std::vector<const char*> Args;
+  std::vector<const char *> m_Args;
+  std::vector<std::string> m_ICommandInclude;
 
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
   ~IncrementalSYCLDeviceCompiler();
   void setExtractDeclFlag(const bool flag);
   void setClearFlag(const bool flag);
-  bool compile(const std::string &input, Transaction *T, unsigned int isStatement,
-            size_t wrap_point, bool declSuccess = false);
+  bool compile(const std::string &input, Transaction *T,
+               unsigned int isStatement, size_t wrap_point,
+               bool declSuccess = false);
   void setTransaction(Transaction *T);
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
+  void addCompileArg(const std::string &arg1, const std::string &arg2 = "");
+
 private:
-  void dump(const std::string& target);
+  void dump(const std::string &target);
   bool compileImpl(const std::string &input);
 };
-
-
 
 } // namespace cling
 

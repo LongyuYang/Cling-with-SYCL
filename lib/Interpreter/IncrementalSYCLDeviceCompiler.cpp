@@ -68,7 +68,8 @@ private:
   static size_t m_clingCounter;
 
 public:
-  explicit InterpreterConsumer(const ASTContext &context, std::string &S, const std::string& originalText)
+  explicit InterpreterConsumer(const ASTContext &context, std::string &S,
+                               const std::string &originalText)
       : DumpText(S), m_context(context), m_text(originalText) {}
   virtual ~InterpreterConsumer() {}
   bool HandleTopLevelDecl(clang::DeclGroupRef DGR) {
@@ -77,8 +78,8 @@ public:
       Decl *D = *it;
       if (D->isFunctionOrFunctionTemplate()) {
         FunctionDecl *FD = cast<FunctionDecl>(D);
-        if (FD->getNameAsString().compare(
-          std::string("__cling_Un1Qu3") + std::to_string(m_clingCounter)) != 0)
+        if (FD->getNameAsString().compare(std::string("__cling_Un1Qu3") +
+                                          std::to_string(m_clingCounter)) != 0)
           continue;
         m_clingCounter++;
         CompoundStmt *CS = dyn_cast<CompoundStmt>(FD->getBody());
@@ -88,7 +89,8 @@ public:
           DeclStmt *DS = dyn_cast<DeclStmt>(*I);
           if (!DS) {
             // dump << std::string("void __cling_wrapper__costom__") +
-            //                 std::to_string(++m_counter) + std::string("(){\n");
+            //                 std::to_string(++m_counter) +
+            //                 std::string("(){\n");
             // (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
             // dump << ";\n}\n";
             continue;
@@ -100,7 +102,7 @@ public:
           }
         }
         dump << std::string("void __cling_wrapper__costom__") +
-                            std::to_string(++m_counter) + std::string("(){\n");
+                    std::to_string(++m_counter) + std::string("(){");
         dump << m_text.substr(m_text.find("void* vpClingValue) {") + 21);
         break;
       }
@@ -117,8 +119,9 @@ class InterpreterClassAction : public ASTFrontendAction {
   std::string m_text;
 
 public:
-  explicit InterpreterClassAction(std::string &S, const std::string originalText) : 
-  DumpText(S), m_text(originalText) {}
+  explicit InterpreterClassAction(std::string &S,
+                                  const std::string originalText)
+      : DumpText(S), m_text(originalText) {}
   virtual std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
     InterpreterConsumer *consumer =
@@ -126,7 +129,6 @@ public:
     return std::unique_ptr<clang::ASTConsumer>(consumer);
   }
 };
-
 
 DumpCodeEntry::DumpCodeEntry(unsigned int isStatement, const std::string &input,
                              Transaction *T, bool declSuccess /* = false*/)
@@ -155,22 +157,24 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   while (true) {
     lastPosition = position + 1;
     position = ArgsContent.find('\n', lastPosition);
-    if (position == std::string::npos) break;
-    const std::string arg = ArgsContent.substr(lastPosition, position - lastPosition);
+    if (position == std::string::npos)
+      break;
+    const std::string arg =
+        ArgsContent.substr(lastPosition, position - lastPosition);
     if (arg[0] == '-') {
       findValidArg = false;
     }
-    if (findValidArg || arg == "-cxx-isystem" || arg == "-internal-isystem"
-        || arg == "-internal-externc-isystem" || arg.substr(0, 8) == "-std=c++"
-        || arg.substr(0, 2) == "-f" || arg == "-x") {
-      char* argCString = new char[arg.size() + 1];
+    if (findValidArg || arg == "-cxx-isystem" || arg == "-internal-isystem" ||
+        arg == "-internal-externc-isystem" || arg.substr(0, 8) == "-std=c++" ||
+        arg.substr(0, 2) == "-f" || arg == "-x") {
+      char *argCString = new char[arg.size() + 1];
       strcpy(argCString, arg.c_str());
-      Args.push_back(argCString);
+      m_Args.push_back(argCString);
       findValidArg = true;
     }
   }
-  Args.push_back("-w");
-  Args.push_back("tmp.cpp");
+  m_Args.push_back("-w");
+  m_Args.push_back("tmp.cpp");
 }
 
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
@@ -194,14 +198,14 @@ void IncrementalSYCLDeviceCompiler::setClearFlag(const bool flag) {
 }
 
 bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
-                                         Transaction *T,
-                                         unsigned int isStatement,
-                                         size_t wrap_point,
-                                         bool declSuccess /* = false*/) {
+                                            Transaction *T,
+                                            unsigned int isStatement,
+                                            size_t wrap_point,
+                                            bool declSuccess /* = false*/) {
   if ((isStatement == 0) && (!ExtractDeclFlag))
     return true;
   EntryList.push_back(DumpCodeEntry(isStatement, input, T));
-  //fixme
+  // fixme
   /*
   std::istringstream input_holder(input);
   std::string line;
@@ -237,12 +241,13 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
   return compileImpl(input);
 }
 
-void IncrementalSYCLDeviceCompiler::dump(const std::string& target) {
+void IncrementalSYCLDeviceCompiler::dump(const std::string &target) {
   std::error_code EC;
   llvm::raw_fd_ostream File(target, EC, llvm::sys::fs::F_Text);
   for (auto &CodeEntry : EntryList) {
     File << CodeEntry.code;
-    for (auto sit = CodeEntry.code.rbegin(); sit != CodeEntry.code.rend(); sit++) {
+    for (auto sit = CodeEntry.code.rbegin(); sit != CodeEntry.code.rend();
+         sit++) {
       if (*sit != ' ') {
         if (CodeEntry.isStatement == 0) {
           if (*sit == '}')
@@ -250,8 +255,7 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string& target) {
           else
             File << "\n";
           break;
-        }
-        else {
+        } else {
           if (*sit == ';')
             File << '\n';
           else
@@ -265,18 +269,17 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string& target) {
   ExtractDeclFlag = false;
 }
 
-
 bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   // Dump the code of every CodeEntry
   dump("tmp.cpp");
 
   // Initialize CompilerInstance
-  CompilerInstance* CI = new CompilerInstance();  
-  clang::CompilerInvocation::CreateFromArgs(CI->getInvocation(), Args.data(),
-                                              Args.data() + Args.size(),
-                                              CI->getDiagnostics());
+  CompilerInstance *CI = new CompilerInstance();
+  clang::CompilerInvocation::CreateFromArgs(CI->getInvocation(), m_Args.data(),
+                                            m_Args.data() + m_Args.size(),
+                                            CI->getDiagnostics());
 
-  //create Diagnostics after create args to suppress all warnings
+  // create Diagnostics after create args to suppress all warnings
   CI->createDiagnostics();
   assert(CI->hasDiagnostics());
 
@@ -286,8 +289,8 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
     removeCodeByTransaction(NULL);
     return false;
   }
-  //fix me:
-  if (EntryList.rbegin()->isStatement){
+  // fix me:
+  if (EntryList.rbegin()->isStatement) {
     EntryList.rbegin()->code = tmp;
   }
   dump("dump.cpp");
@@ -300,9 +303,12 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   if (true) {
     DumpOut.open("st.h", std::ios::in | std::ios::out | std::ios::trunc);
     DumpOut.close();
-    int sysReturn =
-        std::system("clang++ -w --sycl -fno-sycl-use-bitcode "
-                    "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv");
+    std::string command = "clang++ -w --sycl -fno-sycl-use-bitcode "
+                    "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv";
+    for (auto& arg : m_ICommandInclude) {
+      command = command + " " + arg;
+    }
+    int sysReturn = std::system(command.c_str());
     if (sysReturn != 0) {
       secureCode = false;
       removeCodeByTransaction(NULL);
@@ -359,6 +365,20 @@ void IncrementalSYCLDeviceCompiler::removeCodeByTransaction(Transaction *T) {
         it++;
       }
     }
+  }
+}
+
+void IncrementalSYCLDeviceCompiler::addCompileArg(const std::string &arg1,
+                                                  const std::string &arg2) {
+  char *tmpArg1 = new char[arg1.length() + 1];
+  strcpy(tmpArg1, arg1.c_str());
+  m_Args.push_back(tmpArg1);
+  m_ICommandInclude.push_back(arg1);
+  if (arg2.length() > 0) {
+    char *tmpArg2 = new char[arg2.length() + 1];
+    strcpy(tmpArg2, arg2.c_str());
+    m_Args.push_back(tmpArg2);
+    m_ICommandInclude.push_back(arg2);
   }
 }
 
