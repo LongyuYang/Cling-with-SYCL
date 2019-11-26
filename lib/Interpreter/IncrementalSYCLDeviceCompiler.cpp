@@ -142,7 +142,7 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   HeadTransaction = new Transaction *;
   *HeadTransaction = NULL;
   secureCode = false;
-  DumpOut.open("dump.cpp", std::ios::in | std::ios::out | std::ios::trunc);
+  DumpOut.open(dumpFile, std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
 
   // Read args from file that is dumped by CIFactory
@@ -173,28 +173,26 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
       findValidArg = true;
     }
   }
-  m_Args.push_back("-w");
-  m_Args.push_back("tmp.cpp");
+  char *noWarnings = new char [3];
+  char *targetFile = new char [dumpFile.length() + 1];
+  strcpy(noWarnings, "-w");
+  strcpy(targetFile, dumpFile.c_str());
+  m_Args.push_back(noWarnings);
+  m_Args.push_back(targetFile);
 }
 
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   delete HeadTransaction;
   m_InputValidator.reset(0);
+  for (auto arg : m_Args) {
+    delete[] arg;
+  }
   if (ClearFlag) {
-    remove("dump.cpp");
+    remove(dumpFile.c_str());
     remove("st.h");
     remove("mk.spv");
     remove("args");
-    remove("tmp.cpp");
   }
-}
-
-void IncrementalSYCLDeviceCompiler::setExtractDeclFlag(const bool flag) {
-  ExtractDeclFlag = flag;
-}
-
-void IncrementalSYCLDeviceCompiler::setClearFlag(const bool flag) {
-  ClearFlag = flag;
 }
 
 bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
@@ -271,7 +269,7 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string &target) {
 
 bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   // Dump the code of every CodeEntry
-  dump("tmp.cpp");
+  dump(dumpFile);
 
   // Initialize CompilerInstance
   CompilerInstance *CI = new CompilerInstance();
@@ -290,10 +288,10 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
     return false;
   }
   // fix me:
-  if (EntryList.rbegin()->isStatement) {
+  if (EntryList.rbegin()->isStatement && tmp.length() > 0) {
     EntryList.rbegin()->code = tmp;
   }
-  dump("dump.cpp");
+  dump(dumpFile);
   delete action;
   delete CI;
   std::string _hsinput(input);
@@ -303,7 +301,7 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   if (true) {
     DumpOut.open("st.h", std::ios::in | std::ios::out | std::ios::trunc);
     DumpOut.close();
-    std::string command = "clang++ -w --sycl -fno-sycl-use-bitcode "
+    std::string command = "clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
                     "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv";
     for (auto& arg : m_ICommandInclude) {
       command = command + " " + arg;
