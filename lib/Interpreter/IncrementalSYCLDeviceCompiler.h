@@ -2,7 +2,6 @@
 #define CLING_INCREMENTAL_SYCL_COMPILER_H
 
 #include "llvm/ADT/StringRef.h"
-#include <deque>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -62,14 +61,15 @@ private:
   Transaction **HeadTransaction = 0;
   bool secureCode;
   bool ClearFlag = false;
+  const std::string dumpFile = "dump.cpp";
   std::vector<const char *> m_Args;
   std::vector<std::string> m_ICommandInclude;
 
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
   ~IncrementalSYCLDeviceCompiler();
-  void setExtractDeclFlag(const bool flag);
-  void setClearFlag(const bool flag);
+  void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag;}
+  void setClearFlag(const bool flag) { ClearFlag = flag;}
   bool compile(const std::string &input, Transaction *T,
                unsigned int isStatement, size_t wrap_point,
                bool declSuccess = false);
