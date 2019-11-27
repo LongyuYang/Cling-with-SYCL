@@ -68,8 +68,9 @@ private:
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
   ~IncrementalSYCLDeviceCompiler();
-  void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag;}
-  void setClearFlag(const bool flag) { ClearFlag = flag;}
+  static int m_UniqueCounter;
+  void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag; }
+  void setClearFlag(const bool flag) { ClearFlag = flag; }
   bool compile(const std::string &input, Transaction *T,
                unsigned int isStatement, size_t wrap_point,
                bool declSuccess = false);
@@ -77,6 +78,8 @@ public:
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
   void addCompileArg(const std::string &arg1, const std::string &arg2 = "");
+  bool refactorcode();
+  static std::string SyclWrapInput(const std::string &Input, unsigned int is_statement);
 
 private:
   void dump(const std::string &target);
