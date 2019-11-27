@@ -663,7 +663,7 @@ size_t cling::utils::getWrapPoint(std::string& source,
   return std::string::npos;
 }
 
-
+/*
 size_t cling::utils::getSyclWrapPoint(std::string &source,
                                       const clang::LangOptions &LangOpts) {
 
@@ -686,3 +686,4 @@ size_t cling::utils::getSyclWrapPoint(std::string &source,
     }
   }
 }
+*/
