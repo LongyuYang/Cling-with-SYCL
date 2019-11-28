@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <system_error>
+#include <unordered_map>
 #include <vector>
 
 namespace llvm {
@@ -41,6 +42,7 @@ public:
   unsigned int isStatement;
   std::string code;
   Transaction *CurT;
+  size_t m_unique;
   bool declSuccess;
   DumpCodeEntry(unsigned int isStatement, const std::string &input,
                 Transaction *T, bool declSuccuss = false);
@@ -49,9 +51,16 @@ public:
 ///\brief The class is responsible for dump cpp code into dump.cpp
 /// and then to be compiled by syclcompiler
 class IncrementalSYCLDeviceCompiler {
+public:
+  typedef std::unordered_map<size_t, std::list<DumpCodeEntry>::iterator>
+      MapUnique;
+  static size_t m_UniqueCounter;
+
 private:
   Interpreter *m_Interpreter;
   std::list<DumpCodeEntry> EntryList;
+  MapUnique UniqueToEntry;
+  std::unordered_map<size_t, bool> m_Uniques;
   std::ofstream DumpOut;
   bool ExtractDeclFlag = false;
   Transaction *CurT;
@@ -68,7 +77,6 @@ private:
 public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp);
   ~IncrementalSYCLDeviceCompiler();
-  static int m_UniqueCounter;
   void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag; }
   void setClearFlag(const bool flag) { ClearFlag = flag; }
   bool compile(const std::string &input, Transaction *T,
@@ -78,8 +86,9 @@ public:
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
   void addCompileArg(const std::string &arg1, const std::string &arg2 = "");
-  bool refactorcode();
-  static std::string SyclWrapInput(const std::string &Input, unsigned int is_statement);
+  bool refactorcode(std::unordered_map<size_t, bool> &Uniques);
+  static std::string SyclWrapInput(const std::string &Input,
+                                   unsigned int is_statement);
 
 private:
   void dump(const std::string &target);
