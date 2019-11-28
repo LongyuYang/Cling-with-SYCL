@@ -263,7 +263,10 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
           --EntryList.end();
       m_Uniques[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] = true;
     }
-    refactorcode(m_Uniques);
+    if (!refactorcode(m_Uniques)) {
+      removeCodeByTransaction(NULL);
+      return false;
+    }
   }
 
   return compileImpl(input);
