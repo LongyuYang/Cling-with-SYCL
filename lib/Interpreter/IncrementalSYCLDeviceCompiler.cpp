@@ -84,31 +84,32 @@ public:
         if (FunctionName.find("__cling_costom_sycl_") != 0)
           continue;
         size_t unique = std::stoi(FunctionName.substr(20));
-        if (!m_Uniques.count(unique))
-          continue;
-        CompoundStmt *CS = dyn_cast<CompoundStmt>(FD->getBody());
-        for (CompoundStmt::body_iterator I = CS->body_begin(),
-                                         EI = CS->body_end();
-             I != EI; ++I) {
-          DeclStmt *DS = dyn_cast<DeclStmt>(*I);
-          if (!DS) {
-            // dump << std::string("void __cling_wrapper__costom__") +
-            //                 std::to_string(++m_counter) +
-            //                 std::string("(){\n");
-            // (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
-            // dump << ";\n}\n";
-            continue;
+        if (m_Uniques.count(unique) && m_Uniques[unique]) {
+          m_Uniques[unique] = false;
+          CompoundStmt *CS = dyn_cast<CompoundStmt>(FD->getBody());
+          for (CompoundStmt::body_iterator I = CS->body_begin(),
+                                          EI = CS->body_end();
+              I != EI; ++I) {
+            DeclStmt *DS = dyn_cast<DeclStmt>(*I);
+            if (!DS) {
+              // dump << std::string("void __cling_wrapper__costom__") +
+              //                 std::to_string(++m_counter) +
+              //                 std::string("(){\n");
+              // (*I)->printPretty(dump, NULL, PrintingPolicy(LangOptions()));
+              // dump << ";\n}\n";
+              continue;
+            }
+            for (DeclStmt::decl_iterator J = DS->decl_begin();
+                J != DS->decl_end(); ++J) {
+              (*J)->print(dump);
+              dump << ";\n";
+            }
           }
-          for (DeclStmt::decl_iterator J = DS->decl_begin();
-               J != DS->decl_end(); ++J) {
-            (*J)->print(dump);
-            dump << ";\n";
+          if (m_UniqueToEntry.count(unique)) {
+            dump << m_UniqueToEntry[unique]->code;
+            dump.flush();
+            m_UniqueToEntry[unique]->code = std::move(DumpText);
           }
-        }
-        if (m_UniqueToEntry.count(unique)) {
-          dump << m_UniqueToEntry[unique]->code;
-          dump.flush();
-          m_UniqueToEntry[unique]->code = std::move(DumpText);
         }
       }
     }
@@ -227,8 +228,8 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
   std::istringstream input_holder(input);
   std::string line;
   std::string complete_input;
+  m_Uniques.clear();
   while (getline(input_holder, line)) {
-    m_Uniques.clear();
     if (line.empty() || (line.size() == 1 && line.front() == '\n')) {
       continue;
     }
