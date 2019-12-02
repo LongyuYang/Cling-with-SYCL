@@ -1,60 +1,11 @@
 #include "IncrementalSYCLDeviceCompiler.h"
-#include "ASTTransformer.h"
-#include "AutoSynthesizer.h"
-#include "BackendPasses.h"
-#include "CheckEmptyTransactionTransformer.h"
-#include "ClingPragmas.h"
-#include "DeclCollector.h"
-#include "DeclExtractor.h"
-#include "DefinitionShadower.h"
-#include "DynamicLookup.h"
-#include "IncrementalExecutor.h"
-#include "NullDerefProtectionTransformer.h"
-#include "TransactionPool.h"
-#include "ValueExtractionSynthesizer.h"
-#include "ValuePrinterSynthesizer.h"
-#include "cling/Interpreter/CIFactory.h"
 #include "cling/Interpreter/Interpreter.h"
 #include "cling/Interpreter/Transaction.h"
 #include "cling/MetaProcessor/InputValidator.h"
-#include "cling/Utils/AST.h"
-#include "cling/Utils/Output.h"
-#include "cling/Utils/Platform.h"
 #include "cling/Utils/SourceNormalization.h"
-#include "clang/AST/ASTConsumer.h"
-#include "clang/AST/Decl.h"
-#include "clang/AST/DeclGroup.h"
-#include "clang/AST/EvaluatedExprVisitor.h"
-#include "clang/Frontend/CompilerInstance.h"
-#include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/Frontend/TextDiagnosticPrinter.h"
-#include "clang/Tooling/Tooling.h"
 
-#include "clang/AST/ASTContext.h"
-#include "clang/AST/Attr.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Basic/Diagnostic.h"
-#include "clang/Basic/FileManager.h"
-#include "clang/Basic/FileSystemOptions.h"
-#include "clang/CodeGen/ModuleBuilder.h"
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendActions.h"
-#include "clang/Frontend/FrontendDiagnostic.h"
-#include "clang/Frontend/FrontendPluginRegistry.h"
-#include "clang/Frontend/MultiplexConsumer.h"
-#include "clang/Lex/Preprocessor.h"
-#include "clang/Lex/PreprocessorOptions.h"
-#include "clang/Parse/Parser.h"
-#include "clang/Sema/Sema.h"
-#include "clang/Sema/SemaDiagnostic.h"
-#include "clang/Serialization/ASTReader.h"
-#include "clang/Serialization/ASTWriter.h"
-#include "llvm/Support/Path.h"
-
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/Support/CrashRecoveryContext.h"
-#include "llvm/Support/MemoryBuffer.h"
 
 using namespace clang;
 namespace cling {
@@ -139,7 +90,6 @@ DumpCodeEntry::DumpCodeEntry(unsigned int isStatement, const std::string &input,
     : isStatement(isStatement), CurT(T), declSuccess(declSuccess) {
   code = IncrementalSYCLDeviceCompiler::SyclWrapInput(input, isStatement);
   m_unique = IncrementalSYCLDeviceCompiler::m_UniqueCounter;
-  IncrementalSYCLDeviceCompiler::m_UniqueCounter++;
 }
 
 IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
@@ -215,6 +165,16 @@ IncrementalSYCLDeviceCompiler::SyclWrapInput(const std::string &Input,
   }
   return Wrapper;
 }
+
+void IncrementalSYCLDeviceCompiler::insertCodeEntry(
+    unsigned int is_statement, const std::string &complete_input,
+    Transaction *T) {
+  EntryList.push_back(DumpCodeEntry(is_statement, complete_input, T));
+  UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter] =
+      --EntryList.end();
+  m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter++);
+}
+
 bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
                                             Transaction *T,
                                             unsigned int isStatement,
@@ -239,28 +199,15 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
     wrapPoint = utils::getWrapPoint(complete_input,
                                     m_Interpreter->getCI()->getLangOpts());
     if (wrapPoint == std::string::npos) {
-      EntryList.push_back(DumpCodeEntry(0, complete_input, T));
-      UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
-          --EntryList.end();
-      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
+      insertCodeEntry(0, complete_input, T);
     } else if (wrapPoint == 0) {
-      EntryList.push_back(DumpCodeEntry(1, complete_input, T));
-      UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
-          --EntryList.end();
-      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
+      insertCodeEntry(1, complete_input, T);
     } else {
-      EntryList.push_back(
-          DumpCodeEntry(0, complete_input.substr(0, wrapPoint), T));
-      UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
-          --EntryList.end();
-      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
+      insertCodeEntry(0, complete_input.substr(0, wrapPoint), T);
       std::string wrappedinput(complete_input.substr(wrapPoint));
-      EntryList.push_back(DumpCodeEntry(1, wrappedinput, T));
-      UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
-          --EntryList.end();
-      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
+      insertCodeEntry(1, wrappedinput, T);
     }
-    if (!refactorcode()) {
+    if (!refactorCode()) {
       return false;
     }
     lastUnique = m_Uniques.back();
@@ -297,7 +244,7 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string &target) {
   ExtractDeclFlag = false;
 }
 
-bool IncrementalSYCLDeviceCompiler::refactorcode() {
+bool IncrementalSYCLDeviceCompiler::refactorCode() {
   dump(dumpFile);
 
   // Initialize CompilerInstance

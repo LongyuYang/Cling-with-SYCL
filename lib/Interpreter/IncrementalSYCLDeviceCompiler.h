@@ -1,39 +1,20 @@
 #ifndef CLING_INCREMENTAL_SYCL_COMPILER_H
 #define CLING_INCREMENTAL_SYCL_COMPILER_H
 
-#include "llvm/ADT/StringRef.h"
 #include <fstream>
 #include <iostream>
 #include <list>
 #include <memory>
 #include <sstream>
 #include <string>
-#include <system_error>
 #include <unordered_map>
 #include <vector>
-
-namespace llvm {
-class MemoryBuffer;
-}
 
 namespace cling {
 class Transaction;
 class InputValidator;
 class Interpreter;
-class CompilationOptions;
-class DeclCollector;
 } // namespace cling
-
-namespace clang {
-class ASTConsumer;
-class CodeGenerator;
-class CompilerInstance;
-class DiagnosticConsumer;
-class Decl;
-class FileID;
-class ModuleFileExtension;
-class Parser;
-} // namespace clang
 
 namespace cling {
 
@@ -87,13 +68,15 @@ public:
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
   void addCompileArg(const std::string &arg1, const std::string &arg2 = "");
-  bool refactorcode();
+  bool refactorCode();
   static std::string SyclWrapInput(const std::string &Input,
                                    unsigned int is_statement);
 
 private:
   void dump(const std::string &target);
   bool compileImpl(const std::string &input);
+  void insertCodeEntry(unsigned int is_statement,
+                       const std::string &complete_input, Transaction *T);
 };
 
 } // namespace cling
