@@ -1336,6 +1336,7 @@ namespace cling {
       = m_IncrParser->Compile(Wrapper, CO);
     Transaction* lastT = PRT.getPointer();
     //lastT->printStructure();
+    m_SYCLCompiler->setTransaction(lastT);
     
     if (lastT && lastT->getState() != Transaction::kCommitted) {
       assert((lastT->getState() == Transaction::kCommitted
@@ -1365,7 +1366,6 @@ namespace cling {
     if (!V)
       V = &resultV;
     if (!lastT->getWrapperFD()) {// no wrapper to run 
-      m_SYCLCompiler->setTransaction(lastT);
       return Interpreter::kSuccess;
     }
     else {
@@ -1378,13 +1378,11 @@ namespace cling {
             // dumpIfNoStorage.
             && V->needsManagedAllocation())
          V->dump();
-         m_SYCLCompiler->setTransaction(lastT);
          return Interpreter::kSuccess;
       } else {
         return Interpreter::kFailure;
       }
     }
-    m_SYCLCompiler->setTransaction(lastT);
     return Interpreter::kSuccess;
   }
 
