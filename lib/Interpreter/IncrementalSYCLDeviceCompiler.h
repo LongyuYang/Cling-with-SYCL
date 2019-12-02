@@ -60,7 +60,8 @@ private:
   Interpreter *m_Interpreter;
   std::list<DumpCodeEntry> EntryList;
   MapUnique UniqueToEntry;
-  std::unordered_map<size_t, bool> m_Uniques;
+  std::vector<size_t> m_Uniques;
+  int lastUnique = -1;
   std::ofstream DumpOut;
   bool ExtractDeclFlag = false;
   Transaction *CurT;
@@ -86,7 +87,7 @@ public:
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
   void addCompileArg(const std::string &arg1, const std::string &arg2 = "");
-  bool refactorcode(std::unordered_map<size_t, bool> &Uniques);
+  bool refactorcode();
   static std::string SyclWrapInput(const std::string &Input,
                                    unsigned int is_statement);
 
