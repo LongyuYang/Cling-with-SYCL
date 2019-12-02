@@ -63,15 +63,14 @@ class InterpreterConsumer : public ASTConsumer {
 private:
   const ASTContext &m_context;
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
-  std::unordered_map<size_t, bool> &m_Uniques;
+  int lastUnique;
 
 public:
   explicit InterpreterConsumer(
       const ASTContext &context,
-      IncrementalSYCLDeviceCompiler::MapUnique &UniqueToEntry,
-      std::unordered_map<size_t, bool> &Uniques)
-      : m_context(context), m_UniqueToEntry(UniqueToEntry), m_Uniques(Uniques) {
-  }
+      IncrementalSYCLDeviceCompiler::MapUnique &UniqueToEntry, int lastUnique)
+      : m_context(context), m_UniqueToEntry(UniqueToEntry),
+        lastUnique(lastUnique) {}
   virtual ~InterpreterConsumer() {}
   bool HandleTopLevelDecl(clang::DeclGroupRef DGR) {
     std::string DumpText;
@@ -83,13 +82,12 @@ public:
         std::string FunctionName = FD->getNameAsString();
         if (FunctionName.find("__cling_costom_sycl_") != 0)
           continue;
-        size_t unique = std::stoi(FunctionName.substr(20));
-        if (m_Uniques.count(unique) && m_Uniques[unique]) {
-          m_Uniques[unique] = false;
+        int unique = std::stoi(FunctionName.substr(20));
+        if (unique > lastUnique) {
           CompoundStmt *CS = dyn_cast<CompoundStmt>(FD->getBody());
           for (CompoundStmt::body_iterator I = CS->body_begin(),
-                                          EI = CS->body_end();
-              I != EI; ++I) {
+                                           EI = CS->body_end();
+               I != EI; ++I) {
             DeclStmt *DS = dyn_cast<DeclStmt>(*I);
             if (!DS) {
               // dump << std::string("void __cling_wrapper__costom__") +
@@ -100,7 +98,7 @@ public:
               continue;
             }
             for (DeclStmt::decl_iterator J = DS->decl_begin();
-                J != DS->decl_end(); ++J) {
+                 J != DS->decl_end(); ++J) {
               (*J)->print(dump);
               dump << ";\n";
             }
@@ -122,17 +120,16 @@ size_t IncrementalSYCLDeviceCompiler::m_UniqueCounter = 0;
 
 class InterpreterClassAction : public ASTFrontendAction {
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
-  std::unordered_map<size_t, bool> &m_Uniques;
+  int lastUnique;
 
 public:
   explicit InterpreterClassAction(
-      IncrementalSYCLDeviceCompiler::MapUnique &UniqueToEntry,
-      std::unordered_map<size_t, bool> &Uniques)
-      : m_UniqueToEntry(UniqueToEntry), m_Uniques(Uniques) {}
+      IncrementalSYCLDeviceCompiler::MapUnique &UniqueToEntry, int lastUnique)
+      : m_UniqueToEntry(UniqueToEntry), lastUnique(lastUnique) {}
   virtual std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &Compiler, llvm::StringRef InFile) {
     InterpreterConsumer *consumer = new InterpreterConsumer(
-        Compiler.getASTContext(), m_UniqueToEntry, m_Uniques);
+        Compiler.getASTContext(), m_UniqueToEntry, lastUnique);
     return std::unique_ptr<clang::ASTConsumer>(consumer);
   }
 };
@@ -245,28 +242,28 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
       EntryList.push_back(DumpCodeEntry(0, complete_input, T));
       UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
           --EntryList.end();
-      m_Uniques[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] = true;
+      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
     } else if (wrapPoint == 0) {
       EntryList.push_back(DumpCodeEntry(1, complete_input, T));
       UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
           --EntryList.end();
-      m_Uniques[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] = true;
+      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
     } else {
       EntryList.push_back(
           DumpCodeEntry(0, complete_input.substr(0, wrapPoint), T));
       UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
           --EntryList.end();
-      m_Uniques[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] = true;
+      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
       std::string wrappedinput(complete_input.substr(wrapPoint));
       EntryList.push_back(DumpCodeEntry(1, wrappedinput, T));
       UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] =
           --EntryList.end();
-      m_Uniques[IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1] = true;
+      m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter - 1);
     }
-    if (!refactorcode(m_Uniques)) {
-      removeCodeByTransaction(NULL);
+    if (!refactorcode()) {
       return false;
     }
+    lastUnique = m_Uniques.back();
   }
 
   return compileImpl(input);
@@ -300,8 +297,7 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string &target) {
   ExtractDeclFlag = false;
 }
 
-bool IncrementalSYCLDeviceCompiler::refactorcode(
-    std::unordered_map<size_t, bool> &Uniques) {
+bool IncrementalSYCLDeviceCompiler::refactorcode() {
   dump(dumpFile);
 
   // Initialize CompilerInstance
@@ -315,7 +311,7 @@ bool IncrementalSYCLDeviceCompiler::refactorcode(
   assert(CI.hasDiagnostics());
 
   std::unique_ptr<FrontendAction> action(
-      new InterpreterClassAction(UniqueToEntry, Uniques));
+      new InterpreterClassAction(UniqueToEntry, lastUnique));
   if (!CI.ExecuteAction(*action)) {
     removeCodeByTransaction(NULL);
     return false;
@@ -327,47 +323,41 @@ bool IncrementalSYCLDeviceCompiler::refactorcode(
 bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   // Dump the code of every CodeEntry
 
-  // std::string _hsinput(input);
-  // bool head_spv_flg =
-  // utils::generate_hppandspv(_hsinput,m_Interpreter->getCI()->getLangOpts());
   secureCode = true;
-  if (true) {
-    DumpOut.open("st.h", std::ios::in | std::ios::out | std::ios::trunc);
-    DumpOut.close();
-    std::string command =
-        "clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
-        "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv";
-    for (auto &arg : m_ICommandInclude) {
-      command = command + " " + arg;
-    }
-    int sysReturn = std::system(command.c_str());
-    if (sysReturn != 0) {
-      secureCode = false;
-      removeCodeByTransaction(NULL);
-      return false;
-    }
-    if (HeadTransaction && HeadTransaction[0]) {
-      m_Interpreter->unload(HeadTransaction[0][0]);
-    }
-    std::ifstream headFile;
-    headFile.open("st.h");
-    std::ostringstream tmp;
-    tmp << headFile.rdbuf();
-    std::string headFileContent = tmp.str();
-    headFile.close();
-    if (m_Interpreter->declare(headFileContent.c_str(), HeadTransaction) !=
-        Interpreter::kSuccess) {
-      secureCode = false;
-      return false;
-    }
+  DumpOut.open("st.h", std::ios::in | std::ios::out | std::ios::trunc);
+  DumpOut.close();
+  std::string command = "clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
+                        "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv";
+  for (auto &arg : m_ICommandInclude) {
+    command = command + " " + arg;
+  }
+  int sysReturn = std::system(command.c_str());
+  if (sysReturn != 0) {
+    secureCode = false;
+    removeCodeByTransaction(NULL);
+    return false;
+  }
+  if (HeadTransaction && HeadTransaction[0]) {
+    m_Interpreter->unload(HeadTransaction[0][0]);
+  }
+  std::ifstream headFile;
+  headFile.open("st.h");
+  std::ostringstream tmp;
+  tmp << headFile.rdbuf();
+  std::string headFileContent = tmp.str();
+  headFile.close();
+  if (m_Interpreter->declare(headFileContent.c_str(), HeadTransaction) !=
+      Interpreter::kSuccess) {
+    secureCode = false;
+    return false;
   }
   secureCode = false;
   return true;
 }
 
 void IncrementalSYCLDeviceCompiler::setTransaction(Transaction *T) {
-  for (auto &u : m_Uniques) {
-    UniqueToEntry[u.first]->CurT = T;
+  for (auto u : m_Uniques) {
+    UniqueToEntry[u]->CurT = T;
   }
 }
 
@@ -376,8 +366,8 @@ void IncrementalSYCLDeviceCompiler::setDeclSuccess(Transaction *T) {
     if (T) {
       setTransaction(T);
     } else {
-      for (auto &u : m_Uniques) {
-        UniqueToEntry[u.first]->declSuccess = true;
+      for (auto u : m_Uniques) {
+        UniqueToEntry[u]->declSuccess = true;
       }
     }
   }
