@@ -104,7 +104,7 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
 
   // Read args from file that is dumped by CIFactory
   std::ifstream ArgsFile;
-  ArgsFile.open("args");
+  ArgsFile.open("args_costom_xxx");
   std::ostringstream ArgsTmp;
   ArgsTmp << ArgsFile.rdbuf();
   ArgsFile.close();
@@ -146,9 +146,9 @@ IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   }
   if (ClearFlag) {
     remove(dumpFile.c_str());
-    remove("st.h");
-    remove("mk.spv");
-    remove("args");
+    remove("st_costom_xxx.h");
+    remove("mk_costom_xxx.spv");
+    remove("args_costom_xxx");
   }
 }
 std::string
@@ -271,10 +271,10 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   // Dump the code of every CodeEntry
 
   secureCode = true;
-  DumpOut.open("st.h", std::ios::in | std::ios::out | std::ios::trunc);
+  DumpOut.open("st_costom_xxx.h", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
   std::string command = "clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
-                        "-Xclang -fsycl-int-header=st.h -c dump.cpp -o mk.spv";
+                        "-Xclang -fsycl-int-header=st_costom_xxx.h -c dump_costom_xxx.cpp -o mk_costom_xxx.spv";
   for (auto &arg : m_ICommandInclude) {
     command = command + " " + arg;
   }
@@ -288,7 +288,7 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
     m_Interpreter->unload(HeadTransaction[0][0]);
   }
   std::ifstream headFile;
-  headFile.open("st.h");
+  headFile.open("st_costom_xxx.h");
   std::ostringstream tmp;
   tmp << headFile.rdbuf();
   std::string headFileContent = tmp.str();

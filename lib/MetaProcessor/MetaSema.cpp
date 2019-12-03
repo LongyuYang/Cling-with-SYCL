@@ -517,7 +517,7 @@ namespace cling {
     if(m_Interpreter.loadLibrary("libsycl.so") == Interpreter::kSuccess) {
       printf("=======> libsycl loaded!\n");
     }
-    setenv("SYCL_USE_KERNEL_SPV", "mk.spv", 1);
+    setenv("SYCL_USE_KERNEL_SPV", "mk_costom_xxx.spv", 1);
   }
 
 

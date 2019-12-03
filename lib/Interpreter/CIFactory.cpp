@@ -937,7 +937,7 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
     }
     // Dump the args to a file for initialization of CompilerInstance of SYCLDeviceCompiler
     std::error_code EC;
-    llvm::raw_fd_ostream ArgFile("args", EC, llvm::sys::fs::F_Text); 
+    llvm::raw_fd_ostream ArgFile("args_costom_xxx", EC, llvm::sys::fs::F_Text); 
     for (auto it = CC1Args->begin(); it != CC1Args->end(); it++)
       ArgFile << *it << "\n";
     ArgFile.close();

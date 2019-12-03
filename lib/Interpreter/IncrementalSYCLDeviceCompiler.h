@@ -52,7 +52,7 @@ private:
   Transaction **HeadTransaction = 0;
   bool secureCode;
   bool ClearFlag = false;
-  const std::string dumpFile = "dump.cpp";
+  const std::string dumpFile = "dump_costom_xxx.cpp";
   std::vector<const char *> m_Args;
   std::vector<std::string> m_ICommandInclude;
 
