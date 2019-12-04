@@ -19,7 +19,7 @@ class Interpreter;
 
 namespace cling {
 
-void CreateCompileOpt(Interpreter *interp,std::vector<const char *> &m_Args);
+void IncrementalCompileOpt(Interpreter *interp,std::vector<const char *> &m_Args);
 
 class DumpCodeEntry {
 public:

@@ -337,7 +337,7 @@ GetCC1Arguments(clang::driver::Compilation *Compilation,
 
   return &Cmd->getArguments();
 }
-void CreateCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args) {
+void IncrementalCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args) {
   std::string cppStdVersion;
   clang::LangOptions langOpts = interp->getCI()->getLangOpts();
   cling::CompilerOptions COpts = interp->getOptions().CompilerOpts;
