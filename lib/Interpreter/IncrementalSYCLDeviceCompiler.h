@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <vector>
 
+
 namespace cling {
 class Transaction;
 class InputValidator;
@@ -17,6 +18,8 @@ class Interpreter;
 } // namespace cling
 
 namespace cling {
+
+void CreateCompileOpt(Interpreter *interp,std::vector<const char *> &m_Args);
 
 class DumpCodeEntry {
 public:
@@ -36,6 +39,7 @@ public:
   typedef std::unordered_map<size_t, std::list<DumpCodeEntry>::iterator>
       MapUnique;
   static size_t m_UniqueCounter;
+  static const std::string dumpFile;
 
 private:
   Interpreter *m_Interpreter;
@@ -52,7 +56,6 @@ private:
   Transaction **HeadTransaction = 0;
   bool secureCode;
   bool ClearFlag = false;
-  const std::string dumpFile = "dump_costom_xxx.cpp";
   std::vector<const char *> m_Args;
   std::vector<std::string> m_ICommandInclude;
 

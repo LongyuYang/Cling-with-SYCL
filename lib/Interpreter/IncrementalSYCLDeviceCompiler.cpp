@@ -68,6 +68,7 @@ public:
 };
 
 size_t IncrementalSYCLDeviceCompiler::m_UniqueCounter = 0;
+const std::string IncrementalSYCLDeviceCompiler::dumpFile = "dump_costom_xxx.cpp"; 
 
 class InterpreterClassAction : public ASTFrontendAction {
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
@@ -102,40 +103,7 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   DumpOut.open(dumpFile, std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
 
-  // Read args from file that is dumped by CIFactory
-  std::ifstream ArgsFile;
-  ArgsFile.open("args_costom_xxx");
-  std::ostringstream ArgsTmp;
-  ArgsTmp << ArgsFile.rdbuf();
-  ArgsFile.close();
-  std::string ArgsContent = ArgsTmp.str();
-  size_t position = -1, lastPosition;
-  bool findValidArg = false;
-  while (true) {
-    lastPosition = position + 1;
-    position = ArgsContent.find('\n', lastPosition);
-    if (position == std::string::npos)
-      break;
-    const std::string arg =
-        ArgsContent.substr(lastPosition, position - lastPosition);
-    if (arg[0] == '-') {
-      findValidArg = false;
-    }
-    if (findValidArg || arg == "-cxx-isystem" || arg == "-internal-isystem" ||
-        arg == "-internal-externc-isystem" || arg.substr(0, 8) == "-std=c++" ||
-        arg.substr(0, 2) == "-f" || arg == "-x") {
-      char *argCString = new char[arg.size() + 1];
-      strcpy(argCString, arg.c_str());
-      m_Args.push_back(argCString);
-      findValidArg = true;
-    }
-  }
-  char *noWarnings = new char[3];
-  char *targetFile = new char[dumpFile.length() + 1];
-  strcpy(noWarnings, "-w");
-  strcpy(targetFile, dumpFile.c_str());
-  m_Args.push_back(noWarnings);
-  m_Args.push_back(targetFile);
+  CreateCompileOpt(interp,m_Args);
 }
 
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
@@ -148,7 +116,6 @@ IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
     remove(dumpFile.c_str());
     remove("st_costom_xxx.h");
     remove("mk_costom_xxx.spv");
-    remove("args_costom_xxx");
   }
 }
 std::string
