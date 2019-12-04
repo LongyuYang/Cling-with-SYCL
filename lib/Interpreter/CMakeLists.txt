@@ -72,7 +72,7 @@ add_cling_library(clingInterpreter OBJECT
   ClangInternalState.cpp
   ClingCodeCompleteConsumer.cpp
   ClingPragmas.cpp
-  CreateSYCLOpt.cpp
+  IncrementalSYCLOpt.cpp
   DeclCollector.cpp
   DeclExtractor.cpp
   DefinitionShadower.cpp
