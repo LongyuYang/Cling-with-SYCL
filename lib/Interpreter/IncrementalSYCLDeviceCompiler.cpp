@@ -31,7 +31,7 @@ public:
       if (D->isFunctionOrFunctionTemplate()) {
         FunctionDecl *FD = cast<FunctionDecl>(D);
         std::string FunctionName = FD->getNameAsString();
-        if (FunctionName.find("__cling_costom_sycl_") != 0)
+        if (FunctionName.find("__cling_custom_sycl_") != 0)
           continue;
         int unique = std::stoi(FunctionName.substr(20));
         if (unique > lastUnique) {
@@ -68,7 +68,7 @@ public:
 };
 
 size_t IncrementalSYCLDeviceCompiler::m_UniqueCounter = 0;
-const std::string IncrementalSYCLDeviceCompiler::dumpFile = "dump_costom_xxx.cpp"; 
+const std::string IncrementalSYCLDeviceCompiler::dumpFile = "DumpFile.cpp"; 
 
 class InterpreterClassAction : public ASTFrontendAction {
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
@@ -114,8 +114,8 @@ IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   }
   if (ClearFlag) {
     remove(dumpFile.c_str());
-    remove("st_costom_xxx.h");
-    remove("mk_costom_xxx.spv");
+    remove("KernelInfo.h");
+    remove("DeviceCode.spv");
   }
 }
 std::string
@@ -123,7 +123,7 @@ IncrementalSYCLDeviceCompiler::SyclWrapInput(const std::string &Input,
                                              unsigned int is_statement) {
   std::string Wrapper(Input);
   if (is_statement) {
-    std::string Header = std::string("void __cling_costom_sycl_") +
+    std::string Header = std::string("void __cling_custom_sycl_") +
                          std::to_string(m_UniqueCounter) +
                          std::string("() {\n");
     Wrapper.insert(0, Header);
@@ -238,10 +238,10 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   // Dump the code of every CodeEntry
 
   secureCode = true;
-  DumpOut.open("st_costom_xxx.h", std::ios::in | std::ios::out | std::ios::trunc);
+  DumpOut.open("KernelInfo.h", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
   std::string command = "clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
-                        "-Xclang -fsycl-int-header=st_costom_xxx.h -c dump_costom_xxx.cpp -o mk_costom_xxx.spv";
+                        "-Xclang -fsycl-int-header=KernelInfo.h -c DumpFile.cpp -o DeviceCode.spv";
   for (auto &arg : m_ICommandInclude) {
     command = command + " " + arg;
   }
@@ -255,7 +255,7 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
     m_Interpreter->unload(HeadTransaction[0][0]);
   }
   std::ifstream headFile;
-  headFile.open("st_costom_xxx.h");
+  headFile.open("KernelInfo.h");
   std::ostringstream tmp;
   tmp << headFile.rdbuf();
   std::string headFileContent = tmp.str();
