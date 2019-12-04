@@ -103,7 +103,7 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   DumpOut.open(dumpFile, std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
 
-  CreateCompileOpt(interp,m_Args);
+  IncrementalCompileOpt(interp,m_Args);
 }
 
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
