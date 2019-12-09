@@ -10,7 +10,6 @@
 #include <unordered_map>
 #include <vector>
 
-
 namespace cling {
 class Transaction;
 class InputValidator;
@@ -19,7 +18,7 @@ class Interpreter;
 
 namespace cling {
 
-void getSYCLCompileOpt(Interpreter *interp,std::vector<const char *> &m_Args);
+void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args);
 
 class DumpCodeEntry {
 public:
@@ -32,9 +31,27 @@ public:
                 Transaction *T, bool declSuccuss = false);
 };
 
+///\brief Base class for IncrementalSYCLDeviceCompiler. Used when syclMode is
+///not opened
+class IncrementalSYCLDeviceCompilerBase {
+public:
+  IncrementalSYCLDeviceCompilerBase() {}
+  virtual ~IncrementalSYCLDeviceCompilerBase() {}
+  virtual void setExtractDeclFlag(const bool flag) {}
+  virtual void setClearFlag(const bool flag) {}
+  virtual bool compile(const std::string &input, Transaction *T,
+                       unsigned int isStatement, size_t wrap_point,
+                       bool declSuccess = false) { return true; }
+  virtual void setTransaction(Transaction *T) {}
+  virtual void setDeclSuccess(Transaction *T) {}
+  virtual void removeCodeByTransaction(Transaction *T) {}
+  virtual void addCompileArg(const std::string &arg1,
+                             const std::string &arg2 = "") {}
+};
+
 ///\brief The class is responsible for dump cpp code into dump.cpp
 /// and then to be compiled by syclcompiler
-class IncrementalSYCLDeviceCompiler {
+class IncrementalSYCLDeviceCompiler : public IncrementalSYCLDeviceCompilerBase {
 public:
   typedef std::unordered_map<size_t, std::list<DumpCodeEntry>::iterator>
       MapUnique;
@@ -58,9 +75,10 @@ private:
   bool ClearFlag = false;
   std::vector<const char *> m_Args;
   std::vector<std::string> m_ICommandInclude;
+  std::string SYCL_BIN_PATH;
 
 public:
-  IncrementalSYCLDeviceCompiler(Interpreter *interp);
+  IncrementalSYCLDeviceCompiler(Interpreter *interp, std::string SYCL_BIN_PATH);
   ~IncrementalSYCLDeviceCompiler();
   void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag; }
   void setClearFlag(const bool flag) { ClearFlag = flag; }
@@ -71,7 +89,6 @@ public:
   void setDeclSuccess(Transaction *T);
   void removeCodeByTransaction(Transaction *T);
   void addCompileArg(const std::string &arg1, const std::string &arg2 = "");
-  bool refactorCode();
   static std::string SyclWrapInput(const std::string &Input,
                                    unsigned int is_statement);
 
@@ -80,6 +97,7 @@ private:
   bool compileImpl(const std::string &input);
   void insertCodeEntry(unsigned int is_statement,
                        const std::string &complete_input, Transaction *T);
+  bool refactorCode();
 };
 
 } // namespace cling

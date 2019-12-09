@@ -240,7 +240,7 @@ namespace cling {
     m_LLVMContext.reset(new llvm::LLVMContext);
     m_DyLibManager.reset(new DynamicLibraryManager(getOptions()));
     m_IncrParser.reset(new IncrementalParser(this, llvmdir, moduleExtensions));
-    m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this));
+    m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompilerBase());
     if (!m_IncrParser->isValid(false))
       return;
 
@@ -1787,6 +1787,10 @@ namespace cling {
 
   void Interpreter::setSYCLCompilerClearFlag(bool flag) {
     m_SYCLCompiler->setClearFlag(flag);
+  }
+
+  void Interpreter::createSYCLCompiler(std::string SYCL_BIN_PATH) {
+    m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH));
   }
 
   namespace runtime {

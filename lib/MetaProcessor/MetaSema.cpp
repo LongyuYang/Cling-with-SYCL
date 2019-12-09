@@ -511,24 +511,46 @@ namespace cling {
     if(m_Interpreter.loadHeader("CL/sycl.hpp") == Interpreter::kSuccess) {
       printf("=======> sycl.hpp included!\n");
     }
+    else {
+      printf("open syclMode failed: could not load CL/sycl.hpp\n");
+      return;
+    }
     /***
     Please add the path of libsycl.so to LD_LIBRARY_PATH
     ***/
     if(m_Interpreter.loadLibrary("libsycl.so") == Interpreter::kSuccess) {
-      printf("=======> libsycl loaded!\n");
+      printf("=======> libsycl.so loaded!\n");
     }
+    else {
+      printf("open syclMode failed: could not load libsycl.so\n");
+      return;
+    }
+    /***
+    Please set SYCL_BIN_PATH with the path of SYCL clang++
+    ***/
+    char* SYCL_BIN_PATH_CString = getenv("SYCL_BIN_PATH");
+    if (!SYCL_BIN_PATH_CString) {
+      printf("open syclMode failed: SYCL_BIN_PATH not set\n");
+      return;
+    }
+    std::string SYCL_BIN_PATH(SYCL_BIN_PATH_CString);
     setenv("SYCL_USE_KERNEL_SPV", "DeviceCode.spv", 1);
+    m_Interpreter.createSYCLCompiler(SYCL_BIN_PATH);
   }
 
 
   void MetaSema::actOnCTSCommand() const {
-    actOnSYCLmodeCommand();
     /***
     Please add the path of libctstest.so to LD_LIBRARY_PATH
     ***/
     if(m_Interpreter.loadLibrary("libctstest.so") == Interpreter::kSuccess) {
       printf("=======> libctstest loaded!\n");
     }
+    else {
+      printf("open ctsMode failed: could not load libsycl.so\n");
+      return;
+    }
+    actOnSYCLmodeCommand();
     m_Interpreter.setSYCLCompilerClearFlag(true);
   }
 } // end namespace cling

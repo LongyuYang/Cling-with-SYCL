@@ -80,7 +80,7 @@ namespace cling {
   class LookupHelper;
   class Value;
   class Transaction;
-  class IncrementalSYCLDeviceCompiler;
+  class IncrementalSYCLDeviceCompilerBase;
 
   ///\brief Class that implements the interpreter-like behavior. It manages the
   /// incremental compilation.
@@ -175,7 +175,7 @@ namespace cling {
 
     ///\brief Cling's cppdumper to dump cpp into sycl compiler.
     ///
-    std::unique_ptr<IncrementalSYCLDeviceCompiler> m_SYCLCompiler;
+    std::unique_ptr<IncrementalSYCLDeviceCompilerBase> m_SYCLCompiler;
 
     ///\brief Cache of compiled destructors wrappers.
     std::unordered_map<const clang::RecordDecl*, void*> m_DtorWrappers;
@@ -820,10 +820,10 @@ namespace cling {
                         IgnoreFilesFunc_t ignoreFiles =
                           [](const clang::PresumedLoc&) { return false;}) const;
     
+    ///\brief Interface to manipulate SYCLCompiler by Interpreter
+    void createSYCLCompiler(std::string SYCL_BIN_PATH); 
     void clearSYCLCompilerNULLTransaction();
-
     void setSYCLCompilerExtractDeclFlag(bool);
-
     void setSYCLCompilerClearFlag(bool);
 
     friend class runtime::internal::LifetimeHandler;
