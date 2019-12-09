@@ -94,8 +94,8 @@ DumpCodeEntry::DumpCodeEntry(unsigned int isStatement, const std::string &input,
 }
 
 IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
-    Interpreter *interp)
-    : m_Interpreter(interp) {
+    Interpreter *interp, std::string SYCL_BIN_PATH)
+    : m_Interpreter(interp), SYCL_BIN_PATH(std::move(SYCL_BIN_PATH)) {
   m_InputValidator.reset(new InputValidator());
   HeadTransaction = new Transaction *;
   *HeadTransaction = NULL;
@@ -240,7 +240,8 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   secureCode = true;
   DumpOut.open("KernelInfo.h", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
-  std::string command = "clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
+  std::string command = SYCL_BIN_PATH + 
+                        "/clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
                         "-Xclang -fsycl-int-header=KernelInfo.h -c DumpFile.cpp -o DeviceCode.spv";
   for (auto &arg : m_ICommandInclude) {
     command = command + " " + arg;
