@@ -31,8 +31,8 @@ public:
                 Transaction *T, bool declSuccuss = false);
 };
 
-///\brief Base class for IncrementalSYCLDeviceCompiler. Used when syclMode is
-///not opened
+///\brief Base class for IncrementalSYCLDeviceCompiler. Used only when lauching
+///cling without -fsycl
 class IncrementalSYCLDeviceCompilerBase {
 public:
   IncrementalSYCLDeviceCompilerBase() {}
@@ -41,7 +41,9 @@ public:
   virtual void setClearFlag(const bool flag) {}
   virtual bool compile(const std::string &input, Transaction *T,
                        unsigned int isStatement, size_t wrap_point,
-                       bool declSuccess = false) { return true; }
+                       bool declSuccess = false) {
+    return true;
+  }
   virtual void setTransaction(Transaction *T) {}
   virtual void setDeclSuccess(Transaction *T) {}
   virtual void removeCodeByTransaction(Transaction *T) {}
@@ -95,8 +97,8 @@ public:
 private:
   void dump(const std::string &target);
   bool compileImpl(const std::string &input);
-  void insertCodeEntry(unsigned int is_statement,
-                       const std::string &complete_input, Transaction *T);
+  void insertCodeEntry(unsigned int is_statement, const std::string &input,
+                       Transaction *T);
   bool refactorCode();
 };
 

@@ -402,6 +402,21 @@ namespace cling {
       // Prevents stripping the symbol due to dead-code optimization.
       internal::symbol_requester();
     }
+
+    if (m_Opts.CompilerOpts.SYCL){   
+      if (loadLibrary("libsycl.so") != Interpreter::kSuccess) {
+        llvm::errs() << "enable SYCL failed: could not load libsycl.so\n";
+      }
+      else {
+        char* SYCL_BIN_PATH_CString = getenv("SYCL_BIN_PATH");
+        if (!SYCL_BIN_PATH_CString) {
+          llvm::errs() << "enable SYCL failed: SYCL_BIN_PATH not set\n";
+        }
+        std::string SYCL_BIN_PATH(SYCL_BIN_PATH_CString);
+        setenv("SYCL_USE_KERNEL_SPV", "DeviceCode.spv", 1);
+        m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH));
+      }
+    }
   }
 
   ///\brief Constructor for the child Interpreter.
@@ -1787,10 +1802,6 @@ namespace cling {
 
   void Interpreter::setSYCLCompilerClearFlag(bool flag) {
     m_SYCLCompiler->setClearFlag(flag);
-  }
-
-  void Interpreter::createSYCLCompiler(std::string SYCL_BIN_PATH) {
-    m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH));
   }
 
   namespace runtime {

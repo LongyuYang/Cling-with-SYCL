@@ -41,3 +41,5 @@ OPTION(prefix_3, "version", version, Flag, INVALID, INVALID, 0, 0, 0,
        "Print the compiler version", 0, 0)
 OPTION(prefix_1, "v", v, Flag, INVALID, INVALID, 0, 0, 0,
        "Enable verbose output", 0, 0)
+OPTION(prefix_1, "fsycl", fsycl, Flag, INVALID, INVALID, 0, 0, 0,
+       "Enable SYCL Device Compiler", 0, 0)

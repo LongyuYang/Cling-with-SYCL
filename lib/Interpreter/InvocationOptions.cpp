@@ -188,6 +188,10 @@ InvocationOptions::InvocationOptions(int argc, const char* const* argv) :
   for (const Arg* arg : Args) {
     switch (arg->getOption().getKind()) {
       case Option::FlagClass:
+        if (arg->getOption().getID() == OPT_fsycl) {
+          CompilerOpts.SYCL = 1;
+          break;
+        }
         // pass -v to clang as well
         if (arg->getOption().getID() != OPT_v)
           break;

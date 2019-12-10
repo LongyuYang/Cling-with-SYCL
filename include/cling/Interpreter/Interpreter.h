@@ -821,7 +821,6 @@ namespace cling {
                           [](const clang::PresumedLoc&) { return false;}) const;
     
     ///\brief Interface to manipulate SYCLCompiler by Interpreter
-    void createSYCLCompiler(std::string SYCL_BIN_PATH); 
     void clearSYCLCompilerNULLTransaction();
     void setSYCLCompilerExtractDeclFlag(bool);
     void setSYCLCompilerClearFlag(bool);

@@ -133,7 +133,7 @@ namespace cling {
       || iscompareStateCommand() || isstatsCommand() || isundoCommand()
       || isRedirectCommand(actionResult) || istraceCommand()
       // fixme
-      || isprintMBCommand() || isSYCLmodeCommand() || isCTSCommand();
+      || isprintMBCommand() || isCTSCommand();
   }
 
   // L := 'L' FilePath Comment
@@ -674,15 +674,6 @@ namespace cling {
     }
     if (Tok.getIdent().equals("printinput")){
       Dflg = true;
-    }
-    return false;
-  }
-
-  bool MetaParser::isSYCLmodeCommand(){
-    const Token& Tok = getCurTok();
-    if (Tok.getIdent().equals("syclMode")){
-      m_Actions->actOnSYCLmodeCommand();
-      return true;
     }
     return false;
   }
