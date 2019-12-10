@@ -412,9 +412,11 @@ namespace cling {
         if (!SYCL_BIN_PATH_CString) {
           llvm::errs() << "enable SYCL failed: SYCL_BIN_PATH not set\n";
         }
-        std::string SYCL_BIN_PATH(SYCL_BIN_PATH_CString);
-        setenv("SYCL_USE_KERNEL_SPV", "DeviceCode.spv", 1);
-        m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH));
+        else {
+          std::string SYCL_BIN_PATH(SYCL_BIN_PATH_CString);
+          setenv("SYCL_USE_KERNEL_SPV", "DeviceCode.spv", 1);
+          m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH));
+        }
       }
     }
   }

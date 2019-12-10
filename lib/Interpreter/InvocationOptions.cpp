@@ -103,7 +103,7 @@ static const char kNoStdInc[] = "-nostdinc";
 CompilerOptions::CompilerOptions(int argc, const char* const* argv)
     : Language(false), ResourceDir(false), SysRoot(false), NoBuiltinInc(false),
       NoCXXInc(false), StdVersion(false), StdLib(false), HasOutput(false),
-      Verbose(false), CxxModules(false), CUDA(false) {
+      Verbose(false), CxxModules(false), CUDA(false), SYCL(false) {
   if (argc && argv) {
     // Preserve what's already in Remaining, the user might want to push args
     // to clang while still using main's argc, argv
