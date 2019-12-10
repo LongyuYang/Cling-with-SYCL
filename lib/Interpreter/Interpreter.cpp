@@ -1800,10 +1800,6 @@ namespace cling {
     m_SYCLCompiler->setExtractDeclFlag(flag);
   }
 
-  void Interpreter::setSYCLCompilerClearFlag(bool flag) {
-    m_SYCLCompiler->setClearFlag(flag);
-  }
-
   namespace runtime {
     namespace internal {
       Value EvaluateDynamicExpression(Interpreter* interp, DynamicExprInfo* DEI,

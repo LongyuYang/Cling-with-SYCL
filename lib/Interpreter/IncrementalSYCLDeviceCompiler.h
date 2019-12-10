@@ -32,7 +32,7 @@ public:
 };
 
 ///\brief Base class for IncrementalSYCLDeviceCompiler. Used only when lauching
-///cling without -fsycl
+/// cling without -fsycl
 class IncrementalSYCLDeviceCompilerBase {
 public:
   IncrementalSYCLDeviceCompilerBase() {}
@@ -74,7 +74,6 @@ private:
   ///
   Transaction **HeadTransaction = 0;
   bool secureCode;
-  bool ClearFlag = false;
   std::vector<const char *> m_Args;
   std::vector<std::string> m_ICommandInclude;
   std::string SYCL_BIN_PATH;
@@ -83,7 +82,6 @@ public:
   IncrementalSYCLDeviceCompiler(Interpreter *interp, std::string SYCL_BIN_PATH);
   ~IncrementalSYCLDeviceCompiler();
   void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag; }
-  void setClearFlag(const bool flag) { ClearFlag = flag; }
   bool compile(const std::string &input, Transaction *T,
                unsigned int isStatement, size_t wrap_point,
                bool declSuccess = false);

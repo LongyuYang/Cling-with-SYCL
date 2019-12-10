@@ -823,7 +823,6 @@ namespace cling {
     ///\brief Interface to manipulate SYCLCompiler by Interpreter
     void clearSYCLCompilerNULLTransaction();
     void setSYCLCompilerExtractDeclFlag(bool);
-    void setSYCLCompilerClearFlag(bool);
 
     friend class runtime::internal::LifetimeHandler;
   };
