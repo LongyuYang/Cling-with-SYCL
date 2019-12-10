@@ -207,7 +207,6 @@ void IncrementalSYCLDeviceCompiler::dump(const std::string &target) {
     }
   }
   File.close();
-  ExtractDeclFlag = false;
 }
 
 bool IncrementalSYCLDeviceCompiler::refactorCode() {
@@ -235,7 +234,7 @@ bool IncrementalSYCLDeviceCompiler::refactorCode() {
 
 bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   // Dump the code of every CodeEntry
-
+  setExtractDeclFlag(false);
   secureCode = true;
   DumpOut.open("KernelInfo.h", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
