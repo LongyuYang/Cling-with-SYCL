@@ -249,9 +249,7 @@ namespace cling {
     ///  point.
     void registerUnloadPoint(const Transaction* T, llvm::StringRef filename);
 
-    // fixme: 
-    void actOnSYCLmodeCommand() const;
-
+    ///\brief Open CTS test mode. Work only when lauching cling with -fsycl
     void actOnCTSCommand() const;
 
   };

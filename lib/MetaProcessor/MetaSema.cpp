@@ -388,9 +388,6 @@ namespace cling {
                              "\t\t\t\t  'decl' dump ast declarations\n"
                              "\t\t\t\t  'undo' show undo stack\n"
       "\n"
-      //fixme: SYCLmode
-      "   " << metaString << "syclMode\t\t\t- Enable SYCL mode\n"
-      "\n"
       "   " << metaString << "ctstest\t\t\t- Enable CTSTest mode\n"
       "\n"
       "   " << metaString << "help\t\t\t- Shows this information\n"
@@ -503,54 +500,18 @@ namespace cling {
     }
   }
 
-    // fixme:
-  void MetaSema::actOnSYCLmodeCommand() const {
-    /***
-    Please add paths of OpenCL-Headers and SYCL headers to CPLUS_INCLUDE_PATH
-    ***/
-    if(m_Interpreter.loadHeader("CL/sycl.hpp") == Interpreter::kSuccess) {
-      printf("=======> sycl.hpp included!\n");
-    }
-    else {
-      printf("open syclMode failed: could not load CL/sycl.hpp\n");
-      return;
-    }
-    /***
-    Please add the path of libsycl.so to LD_LIBRARY_PATH
-    ***/
-    if(m_Interpreter.loadLibrary("libsycl.so") == Interpreter::kSuccess) {
-      printf("=======> libsycl.so loaded!\n");
-    }
-    else {
-      printf("open syclMode failed: could not load libsycl.so\n");
-      return;
-    }
-    /***
-    Please set SYCL_BIN_PATH with the path of SYCL clang++
-    ***/
-    char* SYCL_BIN_PATH_CString = getenv("SYCL_BIN_PATH");
-    if (!SYCL_BIN_PATH_CString) {
-      printf("open syclMode failed: SYCL_BIN_PATH not set\n");
-      return;
-    }
-    std::string SYCL_BIN_PATH(SYCL_BIN_PATH_CString);
-    setenv("SYCL_USE_KERNEL_SPV", "DeviceCode.spv", 1);
-    m_Interpreter.createSYCLCompiler(SYCL_BIN_PATH);
-  }
-
-
   void MetaSema::actOnCTSCommand() const {
-    /***
-    Please add the path of libctstest.so to LD_LIBRARY_PATH
-    ***/
-    if(m_Interpreter.loadLibrary("libctstest.so") == Interpreter::kSuccess) {
-      printf("=======> libctstest loaded!\n");
-    }
-    else {
-      printf("open ctsMode failed: could not load libsycl.so\n");
+    if (!m_Interpreter.getOptions().CompilerOpts.SYCL) {
+      printf("open CTS mode failed: please relauch cling with -fsycl\n");
       return;
     }
-    actOnSYCLmodeCommand();
+    if (m_Interpreter.loadLibrary("libctstest.so") == Interpreter::kSuccess) {
+      printf("=======> libctstest.so loaded!\n");
+    }
+    else {
+      printf("open CTS mode failed: could not load libctstest.so\n");
+      return;
+    }
     m_Interpreter.setSYCLCompilerClearFlag(true);
   }
 } // end namespace cling

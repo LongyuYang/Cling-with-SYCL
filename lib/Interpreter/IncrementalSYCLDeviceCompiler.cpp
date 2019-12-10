@@ -134,9 +134,9 @@ IncrementalSYCLDeviceCompiler::SyclWrapInput(const std::string &Input,
 }
 
 void IncrementalSYCLDeviceCompiler::insertCodeEntry(
-    unsigned int is_statement, const std::string &complete_input,
+    unsigned int is_statement, const std::string &input,
     Transaction *T) {
-  EntryList.push_back(DumpCodeEntry(is_statement, complete_input, T));
+  EntryList.push_back(DumpCodeEntry(is_statement, input, T));
   UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter] =
       --EntryList.end();
   m_Uniques.push_back(IncrementalSYCLDeviceCompiler::m_UniqueCounter++);

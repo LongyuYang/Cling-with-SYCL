@@ -115,8 +115,7 @@ namespace cling {
 
     // fixme:
     bool isprintMBCommand();    //for debug
-    bool isSYCLmodeCommand();   //loading libsycl and sycl.hpp
-    bool isCTSCommand();   //loading libsycl and sycl.hpp
+    bool isCTSCommand();        //loading libctstest.so
     
   public:
     MetaParser(MetaSema* Actions);
