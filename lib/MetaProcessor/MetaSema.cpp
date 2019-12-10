@@ -388,8 +388,6 @@ namespace cling {
                              "\t\t\t\t  'decl' dump ast declarations\n"
                              "\t\t\t\t  'undo' show undo stack\n"
       "\n"
-      "   " << metaString << "ctstest\t\t\t- Enable CTSTest mode\n"
-      "\n"
       "   " << metaString << "help\t\t\t- Shows this information\n"
       "\n"
       "   " << metaString << "q\t\t\t\t- Exit the program\n"
@@ -498,20 +496,5 @@ namespace cling {
       m_ReverseWatermarks[unloadPoint] = Entry;
       //fprintf(stderr,"DEBUG: Load for %s recorded unloadPoint %p\n",file.str().c_str(),unloadPoint);
     }
-  }
-
-  void MetaSema::actOnCTSCommand() const {
-    if (!m_Interpreter.getOptions().CompilerOpts.SYCL) {
-      printf("open CTS mode failed: please relauch cling with -fsycl\n");
-      return;
-    }
-    if (m_Interpreter.loadLibrary("libctstest.so") == Interpreter::kSuccess) {
-      printf("=======> libctstest.so loaded!\n");
-    }
-    else {
-      printf("open CTS mode failed: could not load libctstest.so\n");
-      return;
-    }
-    m_Interpreter.setSYCLCompilerClearFlag(true);
   }
 } // end namespace cling

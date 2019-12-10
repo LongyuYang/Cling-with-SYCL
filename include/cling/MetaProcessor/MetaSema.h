@@ -248,10 +248,6 @@ namespace cling {
     ///\param [in] filename - The name of the file to be used as unload
     ///  point.
     void registerUnloadPoint(const Transaction* T, llvm::StringRef filename);
-
-    ///\brief Open CTS test mode. Work only when lauching cling with -fsycl
-    void actOnCTSCommand() const;
-
   };
 
 } // end namespace cling

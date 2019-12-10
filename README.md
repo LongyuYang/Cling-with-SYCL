@@ -57,6 +57,11 @@ Set the SYCL compiler bin path to `$SYCL_BIN_PATH` environment variable. For ins
 ```bash
 export SYCL_BIN_PATH=$SYCL_HOME/build/bin
 ```
+### Set SYCL compiler executable path
+Set the SYCL compiler bin path to `$SYCL_BIN_PATH` environment variable. For instance:
+```bash
+export SYCL_BIN_PATH=$SYCL_HOME/build/bin
+```
 
 Usage
 ------------

@@ -115,7 +115,6 @@ namespace cling {
 
     // fixme:
     bool isprintMBCommand();    //for debug
-    bool isCTSCommand();        //loading libctstest.so
     
   public:
     MetaParser(MetaSema* Actions);

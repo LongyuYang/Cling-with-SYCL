@@ -68,7 +68,7 @@ public:
 };
 
 size_t IncrementalSYCLDeviceCompiler::m_UniqueCounter = 0;
-const std::string IncrementalSYCLDeviceCompiler::dumpFile = "DumpFile.cpp"; 
+const std::string IncrementalSYCLDeviceCompiler::dumpFile = "DumpFile.cpp";
 
 class InterpreterClassAction : public ASTFrontendAction {
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
@@ -112,12 +112,11 @@ IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
   for (auto arg : m_Args) {
     delete[] arg;
   }
-  if (ClearFlag) {
-    remove(dumpFile.c_str());
-    remove("KernelInfo.h");
-    remove("DeviceCode.spv");
-  }
+  remove(dumpFile.c_str());
+  remove("KernelInfo.h");
+  remove("DeviceCode.spv");
 }
+
 std::string
 IncrementalSYCLDeviceCompiler::SyclWrapInput(const std::string &Input,
                                              unsigned int is_statement) {
@@ -133,9 +132,9 @@ IncrementalSYCLDeviceCompiler::SyclWrapInput(const std::string &Input,
   return Wrapper;
 }
 
-void IncrementalSYCLDeviceCompiler::insertCodeEntry(
-    unsigned int is_statement, const std::string &input,
-    Transaction *T) {
+void IncrementalSYCLDeviceCompiler::insertCodeEntry(unsigned int is_statement,
+                                                    const std::string &input,
+                                                    Transaction *T) {
   EntryList.push_back(DumpCodeEntry(is_statement, input, T));
   UniqueToEntry[IncrementalSYCLDeviceCompiler::m_UniqueCounter] =
       --EntryList.end();
@@ -240,9 +239,10 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   secureCode = true;
   DumpOut.open("KernelInfo.h", std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
-  std::string command = SYCL_BIN_PATH + 
+  std::string command = SYCL_BIN_PATH +
                         "/clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
-                        "-Xclang -fsycl-int-header=KernelInfo.h -c DumpFile.cpp -o DeviceCode.spv";
+                        "-Xclang -fsycl-int-header=KernelInfo.h -c "
+                        "DumpFile.cpp -o DeviceCode.spv";
   for (auto &arg : m_ICommandInclude) {
     command = command + " " + arg;
   }
