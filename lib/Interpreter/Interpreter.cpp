@@ -415,7 +415,7 @@ namespace cling {
         else {
           std::string SYCL_BIN_PATH(SYCL_BIN_PATH_CString);
           setenv("SYCL_USE_KERNEL_SPV", "DeviceCode.spv", 1);
-          m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH));
+          m_SYCLCompiler.reset(new IncrementalSYCLDeviceCompiler(this, SYCL_BIN_PATH, llvmdir));
         }
       }
     }

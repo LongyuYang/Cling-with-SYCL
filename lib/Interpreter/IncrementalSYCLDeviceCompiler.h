@@ -18,7 +18,8 @@ class Interpreter;
 
 namespace cling {
 
-void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args);
+void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args,
+                       const char *llvmdir);
 
 class DumpCodeEntry {
 public:
@@ -79,7 +80,8 @@ private:
   std::string SYCL_BIN_PATH;
 
 public:
-  IncrementalSYCLDeviceCompiler(Interpreter *interp, std::string SYCL_BIN_PATH);
+  IncrementalSYCLDeviceCompiler(Interpreter *interp, std::string SYCL_BIN_PATH,
+                                const char *llvmdir);
   ~IncrementalSYCLDeviceCompiler();
   void setExtractDeclFlag(const bool flag) { ExtractDeclFlag = flag; }
   bool compile(const std::string &input, Transaction *T,

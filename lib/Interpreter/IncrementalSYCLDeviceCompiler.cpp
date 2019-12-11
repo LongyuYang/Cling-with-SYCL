@@ -94,7 +94,7 @@ DumpCodeEntry::DumpCodeEntry(unsigned int isStatement, const std::string &input,
 }
 
 IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
-    Interpreter *interp, std::string SYCL_BIN_PATH)
+    Interpreter *interp, std::string SYCL_BIN_PATH, const char *llvmdir)
     : m_Interpreter(interp), SYCL_BIN_PATH(std::move(SYCL_BIN_PATH)) {
   m_InputValidator.reset(new InputValidator());
   HeadTransaction = new Transaction *;
@@ -103,7 +103,7 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   DumpOut.open(dumpFile, std::ios::in | std::ios::out | std::ios::trunc);
   DumpOut.close();
 
-  getSYCLCompileOpt(interp, m_Args);
+  getSYCLCompileOpt(interp, m_Args, llvmdir);
 }
 
 IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
