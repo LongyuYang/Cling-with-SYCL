@@ -7,8 +7,20 @@
 #include "clang/Frontend/CompilerInstance.h"
 #include "clang/Frontend/FrontendActions.h"
 
+#include "clang/Basic/LangOptions.h"
+#include "clang/Basic/SourceManager.h"
+#include "clang/Lex/Lexer.h"
+
 using namespace clang;
 namespace cling {
+
+std::string getRawSourceCode(const ASTContext & context,SourceRange SR){
+  SourceLocation decl_begin = SR.getBegin();
+  SourceLocation decl_end = Lexer::getLocForEndOfToken(SR.getEnd(),0,context.getSourceManager(),context.getLangOpts());
+  const char * buf_begin = context.getSourceManager().getCharacterData(decl_begin);
+  const char * buf_end = context.getSourceManager().getCharacterData(decl_end);
+  return std::string(buf_begin,buf_end);
+}
 
 class InterpreterConsumer : public ASTConsumer {
 private:
@@ -50,7 +62,7 @@ public:
             }
             for (DeclStmt::decl_iterator J = DS->decl_begin();
                  J != DS->decl_end(); ++J) {
-              (*J)->print(dump);
+              dump<<getRawSourceCode(m_context,(*J)->getSourceRange());
               dump << ";\n";
             }
           }
