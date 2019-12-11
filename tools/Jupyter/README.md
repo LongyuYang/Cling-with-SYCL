@@ -23,6 +23,7 @@ To install the kernel with sources in src/tools/cling:
     jupyter-kernelspec install [--user] cling-cpp11
 
 To run it:
-
-    jupyter-notebook
-    # or: jupyter notebook
+```bash
+export CLING_OPTS="-fsycl"
+jupyter-notebook
+```

@@ -337,7 +337,8 @@ GetCC1Arguments(clang::driver::Compilation *Compilation,
 
   return &Cmd->getArguments();
 }
-void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args) {
+void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args,
+                       const char *llvmdir) {
   std::string cppStdVersion;
   clang::LangOptions langOpts = interp->getCI()->getLangOpts();
   cling::CompilerOptions COpts = interp->getOptions().CompilerOpts;
@@ -382,7 +383,7 @@ void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args) {
   argvCompile.push_back(cppStdVersion.c_str());
   argvCompile.insert(argvCompile.end(), argv + 1, argv + argc);
   std::string ClingBin = GetExecutablePath(argv[0]);
-  AddHostArguments(ClingBin, argvCompile, NULL, COpts);
+  AddHostArguments(ClingBin, argvCompile, llvmdir, COpts);
 
 #ifdef __APPLE__
   if (!COpts.StdLib) {
