@@ -293,8 +293,8 @@ void IncrementalSYCLDeviceCompiler::removeCodeByTransaction(Transaction *T) {
   if (!secureCode) {
     for (auto it = EntryList.begin(); it != EntryList.end();) {
       if (!it->declSuccess && (it->CurT == NULL || it->CurT == T)) {
-        it = EntryList.erase(it);
         UniqueToEntry.erase(it->m_unique);
+        it = EntryList.erase(it);
       } else {
         it++;
       }
