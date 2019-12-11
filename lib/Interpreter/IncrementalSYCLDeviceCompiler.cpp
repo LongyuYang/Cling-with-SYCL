@@ -253,6 +253,7 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   }
   if (HeadTransaction && HeadTransaction[0]) {
     m_Interpreter->unload(HeadTransaction[0][0]);
+    HeadTransaction[0] = NULL;
   }
   std::ifstream headFile;
   headFile.open("KernelInfo.h");
@@ -263,6 +264,7 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
   if (m_Interpreter->declare(headFileContent.c_str(), HeadTransaction) !=
       Interpreter::kSuccess) {
     secureCode = false;
+    removeCodeByTransaction(NULL);
     return false;
   }
   secureCode = false;
