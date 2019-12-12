@@ -17,6 +17,9 @@ namespace cling {
 std::string getRawSourceCode(const ASTContext & context,SourceRange SR){
   SourceLocation decl_begin = SR.getBegin();
   SourceLocation decl_end = Lexer::getLocForEndOfToken(SR.getEnd(),0,context.getSourceManager(),context.getLangOpts());
+  if (decl_begin.isMacroID()){
+      decl_begin = context.getSourceManager().getImmediateMacroCallerLoc(decl_begin);
+  }
   const char * buf_begin = context.getSourceManager().getCharacterData(decl_begin);
   const char * buf_end = context.getSourceManager().getCharacterData(decl_end);
   return std::string(buf_begin,buf_end);
