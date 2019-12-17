@@ -1313,7 +1313,7 @@ namespace cling {
            && "Compilation Options not compatible with \"declare\" mode.");
 
     StateDebuggerRAII stateDebugger(this);
-    if (!m_SYCLCompiler->compile(input, NULL, 0, std::string::npos)){
+    if (!m_SYCLCompiler->compile(input, NULL, 0)){
       return kFailure;
     }
     
@@ -1336,7 +1336,7 @@ namespace cling {
                                 Transaction** T /* = 0 */,
                                 size_t wrapPoint /* = 0*/) {
     StateDebuggerRAII stateDebugger(this);
-    if (!m_SYCLCompiler->compile(input, NULL, 1, wrapPoint)){
+    if (!m_SYCLCompiler->compile(input, NULL, 1)){
       return kFailure;
     }
 
