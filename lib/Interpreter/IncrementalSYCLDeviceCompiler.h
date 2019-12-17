@@ -94,7 +94,9 @@ private:
   ///\brief True if the code is entered by the user. Used to avoid non-user code
   /// to enter the code EntryList.
   bool ExtractDeclFlag = false;
-  ///\brief
+  ///\brief a lexical analysis tool providing storage for the input and tracks down 
+  /// whether the (, [, { are balanced. Used by the IncrementalSYCLDeviceCompiler
+  /// to break the whole cppfile sent by jupyter-notebook into several DumpcodeEntrys 
   std::unique_ptr<InputValidator> m_InputValidator;
   ///\brief Transaction correspondending to the kernel info header.
   Transaction **HeadTransaction = NULL;
@@ -186,8 +188,8 @@ private:
   ///\param [in] T - Transaction correspondent to the code.
   void insertCodeEntry(unsigned int is_statement, const std::string &input,
                        Transaction *T);
-  ///\brief Use a CompilerInstance to build a AST and extract declaration out of
-  /// wrapper function. Then modify the code of DumpCodeEntry in EntryList.
+  ///\brief Use a CompilerInstance to build a AST and use custom ASTConsumer to extract declaration 
+  /// out of wrapper function into the global scope. Then modify the code of DumpCodeEntry in EntryList.
   ///
   ///\returns True if compiling is successful
   bool refactorCode();
