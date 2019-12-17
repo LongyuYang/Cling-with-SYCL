@@ -14,15 +14,18 @@
 using namespace clang;
 namespace cling {
 
-std::string getRawSourceCode(const ASTContext & context,SourceRange SR){
+std::string getRawSourceCode(const ASTContext &context, SourceRange SR) {
   SourceLocation decl_begin = SR.getBegin();
-  SourceLocation decl_end = Lexer::getLocForEndOfToken(SR.getEnd(),0,context.getSourceManager(),context.getLangOpts());
-  if (decl_begin.isMacroID()){
-      decl_begin = context.getSourceManager().getImmediateMacroCallerLoc(decl_begin);
+  SourceLocation decl_end = Lexer::getLocForEndOfToken(
+      SR.getEnd(), 0, context.getSourceManager(), context.getLangOpts());
+  if (decl_begin.isMacroID()) {
+    decl_begin =
+        context.getSourceManager().getImmediateMacroCallerLoc(decl_begin);
   }
-  const char * buf_begin = context.getSourceManager().getCharacterData(decl_begin);
-  const char * buf_end = context.getSourceManager().getCharacterData(decl_end);
-  return std::string(buf_begin,buf_end);
+  const char *buf_begin =
+      context.getSourceManager().getCharacterData(decl_begin);
+  const char *buf_end = context.getSourceManager().getCharacterData(decl_end);
+  return std::string(buf_begin, buf_end);
 }
 
 class InterpreterConsumer : public ASTConsumer {
@@ -65,7 +68,7 @@ public:
             }
             for (DeclStmt::decl_iterator J = DS->decl_begin();
                  J != DS->decl_end(); ++J) {
-              dump<<getRawSourceCode(m_context,(*J)->getSourceRange());
+              dump << getRawSourceCode(m_context, (*J)->getSourceRange());
               dump << ";\n";
             }
           }
@@ -84,6 +87,9 @@ public:
 
 size_t IncrementalSYCLDeviceCompiler::m_UniqueCounter = 0;
 const std::string IncrementalSYCLDeviceCompiler::dumpFile = "DumpFile.cpp";
+const std::string IncrementalSYCLDeviceCompiler::kernelInfoFile =
+    "KernelInfo.h";
+const std::string IncrementalSYCLDeviceCompiler::spvFile = "DeviceCode.spv";
 
 class InterpreterClassAction : public ASTFrontendAction {
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
@@ -115,8 +121,9 @@ IncrementalSYCLDeviceCompiler::IncrementalSYCLDeviceCompiler(
   HeadTransaction = new Transaction *;
   *HeadTransaction = NULL;
   secureCode = false;
-  DumpOut.open(dumpFile, std::ios::in | std::ios::out | std::ios::trunc);
-  DumpOut.close();
+  std::ofstream File;
+  File.open(dumpFile, std::ios::in | std::ios::out | std::ios::trunc);
+  File.close();
 
   getSYCLCompileOpt(interp, m_Args, llvmdir);
 }
@@ -128,8 +135,8 @@ IncrementalSYCLDeviceCompiler::~IncrementalSYCLDeviceCompiler() {
     delete[] arg;
   }
   remove(dumpFile.c_str());
-  remove("KernelInfo.h");
-  remove("DeviceCode.spv");
+  remove(kernelInfoFile.c_str());
+  remove(spvFile.c_str());
 }
 
 std::string
@@ -142,7 +149,6 @@ IncrementalSYCLDeviceCompiler::SyclWrapInput(const std::string &Input,
                          std::string("() {\n");
     Wrapper.insert(0, Header);
     Wrapper.append("\n;\n}");
-    return Wrapper;
   }
   return Wrapper;
 }
@@ -159,7 +165,6 @@ void IncrementalSYCLDeviceCompiler::insertCodeEntry(unsigned int is_statement,
 bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
                                             Transaction *T,
                                             unsigned int isStatement,
-                                            size_t wrap_point,
                                             bool declSuccess /* = false*/) {
   if ((isStatement == 0) && (!ExtractDeclFlag))
     return true;
@@ -194,7 +199,7 @@ bool IncrementalSYCLDeviceCompiler::compile(const std::string &input,
     lastUnique = m_Uniques.back();
   }
 
-  return compileImpl(input);
+  return compileImpl();
 }
 
 void IncrementalSYCLDeviceCompiler::dump(const std::string &target) {
@@ -247,16 +252,17 @@ bool IncrementalSYCLDeviceCompiler::refactorCode() {
   return true;
 }
 
-bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
+bool IncrementalSYCLDeviceCompiler::compileImpl() {
   // Dump the code of every CodeEntry
   setExtractDeclFlag(false);
   secureCode = true;
-  DumpOut.open("KernelInfo.h", std::ios::in | std::ios::out | std::ios::trunc);
-  DumpOut.close();
+  std::ofstream File;
+  File.open(kernelInfoFile, std::ios::in | std::ios::out | std::ios::trunc);
+  File.close();
   std::string command = SYCL_BIN_PATH +
                         "/clang++ -w -fsycl-device-only  -fno-sycl-use-bitcode "
-                        "-Xclang -fsycl-int-header=KernelInfo.h -c "
-                        "DumpFile.cpp -o DeviceCode.spv";
+                        "-Xclang -fsycl-int-header=" +
+                        kernelInfoFile + " -c " + dumpFile + " -o " + spvFile;
   for (auto &arg : m_ICommandInclude) {
     command = command + " " + arg;
   }
@@ -266,12 +272,12 @@ bool IncrementalSYCLDeviceCompiler::compileImpl(const std::string &input) {
     removeCodeByTransaction(NULL);
     return false;
   }
-  if (HeadTransaction && HeadTransaction[0]) {
-    m_Interpreter->unload(HeadTransaction[0][0]);
-    HeadTransaction[0] = NULL;
+  if (HeadTransaction && *HeadTransaction) {
+    m_Interpreter->unload(**HeadTransaction);
+    *HeadTransaction = NULL;
   }
   std::ifstream headFile;
-  headFile.open("KernelInfo.h");
+  headFile.open(kernelInfoFile);
   std::ostringstream tmp;
   tmp << headFile.rdbuf();
   std::string headFileContent = tmp.str();
