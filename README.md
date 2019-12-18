@@ -18,7 +18,11 @@ git clone https://gitlab.devtools.intel.com/shqa/root-llvm-mirror.git src
 cd src
 git checkout cling-patches
 cd tools
+<<<<<<< HEAD
 git clone https://gitlab.devtools.intel.com/shqa/root-clang-mirror.git clang
+=======
+git clone https://gitlab.devtools.intel.com/shqa/root-clang-mirror.git
+>>>>>>> 475805a7... mirror llvm and clang from root to internal gitlab
 cd clang
 git checkout cling-patches
 ```
