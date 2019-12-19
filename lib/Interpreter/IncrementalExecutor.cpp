@@ -327,7 +327,6 @@ IncrementalExecutor::ExecutionResult
 IncrementalExecutor::executeWrapper(llvm::StringRef function,
                                     Value* returnValue/* =0*/) const {
   // Set the value to cling::invalid.
-  //printf("run function:%s\n",function.str().c_str());
   if (returnValue)
     *returnValue = Value();
 

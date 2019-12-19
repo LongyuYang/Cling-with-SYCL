@@ -131,8 +131,7 @@ namespace cling {
       || isTypedefCommand()
       || isShellCommand(actionResult, resultValue) || isstoreStateCommand()
       || iscompareStateCommand() || isstatsCommand() || isundoCommand()
-      || isRedirectCommand(actionResult) || istraceCommand()
-      || isprintMBCommand();
+      || isRedirectCommand(actionResult) || istraceCommand();
   }
 
   // L := 'L' FilePath Comment
@@ -661,18 +660,6 @@ namespace cling {
                                                         resultValue);
       }
       return true;
-    }
-    return false;
-  }
-  
-  bool MetaParser::isprintMBCommand(){
-    const Token& Tok = getCurTok();
-    if (Tok.getIdent().equals("printMB")){
-      MBflg = false;
-      return true;
-    }
-    if (Tok.getIdent().equals("printinput")){
-      Dflg = true;
     }
     return false;
   }

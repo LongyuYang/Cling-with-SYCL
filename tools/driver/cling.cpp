@@ -131,7 +131,6 @@ int main( int argc, char **argv ) {
     }
   }
   else {
-    //std::cout <<"\n\nmodified\n\n"<<std::endl;
     Ui.runInteractively(Opts.NoLogo);
   }
 

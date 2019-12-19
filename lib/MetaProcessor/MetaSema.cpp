@@ -180,7 +180,6 @@ namespace cling {
   }
 
   MetaSema::ActionResult MetaSema::actOnUCommand(llvm::StringRef file) {
-    //printf("file:%s\n",file.str().c_str());
     // FIXME: unload, once implemented, must return success / failure
     // Lookup the file
     clang::SourceManager& SM = m_Interpreter.getSema().getSourceManager();
@@ -188,7 +187,6 @@ namespace cling {
 
     //Get the canonical path, taking into account interp and system search paths
     std::string canonicalFile = m_Interpreter.lookupFileOrLibrary(file);
-    //printf("canonicalFile:%s\n",canonicalFile.c_str());
     const clang::FileEntry* Entry
       = FM.getFile(canonicalFile, /*OpenFile*/false, /*CacheFailure*/false);
     if (Entry) {

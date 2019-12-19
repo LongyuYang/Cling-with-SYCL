@@ -450,10 +450,14 @@ namespace {
         // in include/c++/6.3.0/type_traits:344 that clang then rejects. The
         // specialization is protected by !if _GLIBCXX_USE_FLOAT128 (which is
         // unconditionally set in c++config.h) and #if !__STRICT_ANSI__. Tweak
-        // the latter by disabling GNUMode:
-        cling::errs()
-          << "Disabling gnu++: "
-             "clang has no __float128 support on this target!\n";
+        // the latter by disabling GNUMode.
+        // the nvptx backend doesn't support 128 bit float
+        // a error message is not necessary
+        if(!CompilerOpts.CUDADevice) {
+          cling::errs()
+            << "Disabling gnu++: "
+               "clang has no __float128 support on this target!\n";
+        }
         Opts.GNUMode = 0;
       }
 #endif //_GLIBCXX_USE_FLOAT128
@@ -554,6 +558,147 @@ namespace {
       if (normalizePath(ModulePath) != normalizePath(Opts.ModuleCachePath)) {
         Opts.AddPrebuiltModulePath(ModulePath);
       }
+    }
+  }
+
+  static std::string getIncludePathForHeader(const clang::HeaderSearch& HS,
+                                             llvm::StringRef header) {
+    for (auto Dir = HS.search_dir_begin(), E = HS.search_dir_end();
+         Dir != E; ++Dir) {
+      llvm::SmallString<512> headerPath(Dir->getName());
+      llvm::sys::path::append(headerPath, header);
+      if (llvm::sys::fs::exists(headerPath.str()))
+        return Dir->getName().str();
+    }
+    return {};
+  }
+
+  static void collectModuleMaps(clang::CompilerInstance& CI,
+                           llvm::SmallVectorImpl<std::string> &ModuleMapFiles) {
+    assert(CI.getLangOpts().Modules && "Using overlay without -fmodules");
+
+    const clang::HeaderSearch& HS = CI.getPreprocessor().getHeaderSearchInfo();
+    clang::HeaderSearchOptions& HSOpts = CI.getHeaderSearchOpts();
+
+    // We can't use "assert.h" because it is defined in the resource dir, too.
+    llvm::SmallString<128> cIncLoc(getIncludePathForHeader(HS, "time.h"));
+
+    llvm::SmallString<256> stdIncLoc(getIncludePathForHeader(HS, "cassert"));
+
+    llvm::SmallString<256> cudaIncLoc(getIncludePathForHeader(HS, "cuda.h"));
+    llvm::SmallString<256> clingIncLoc(getIncludePathForHeader(HS,
+                                        "cling/Interpreter/RuntimeUniverse.h"));
+
+    // Re-add cling as the modulemap are in cling/*modulemap
+    llvm::sys::path::append(clingIncLoc, "cling");
+
+    // Construct a column of modulemap overlay file if needed.
+    auto maybeAppendOverlayEntry = [&HSOpts](llvm::StringRef SystemDir,
+                                             const std::string& Filename,
+                                             const std::string& Location,
+                                             std::string& overlay) {
+
+      llvm::SmallString<512> originalLoc(Location);
+      llvm::sys::path::append(originalLoc, Filename);
+
+      assert(llvm::sys::fs::exists(originalLoc.str()) && "Must exist!");
+      assert(llvm::sys::fs::exists(SystemDir) && "Must exist!");
+
+      llvm::SmallString<512> systemLoc(SystemDir);
+      llvm::sys::path::append(systemLoc, "module.modulemap");
+      // Check if we need to mount a custom modulemap. We may have it, for
+      // instance when we are on osx or using libc++.
+      if (llvm::sys::fs::exists(systemLoc.str())) {
+        if (HSOpts.Verbose)
+          cling::log() << systemLoc.str()
+                       << " already exists! Skip replacing it with "
+                       << originalLoc.str();
+        return;
+      }
+
+      if (!overlay.empty())
+        overlay += ",\n";
+
+      overlay += "{ 'name': '" + SystemDir.str() + "', 'type': 'directory',\n";
+      overlay += "'contents': [\n   { 'name': 'module.modulemap', ";
+      overlay += "'type': 'file',\n  'external-contents': '";
+      overlay += originalLoc.str().str() + "'\n";
+      overlay += "}\n ]\n }";
+    };
+
+    std::string MOverlay;
+    maybeAppendOverlayEntry(cIncLoc.str(), "libc.modulemap", clingIncLoc.str(),
+                            MOverlay);
+    maybeAppendOverlayEntry(stdIncLoc.str(), "std.modulemap", clingIncLoc.str(),
+                            MOverlay);
+    if (!cudaIncLoc.empty())
+      maybeAppendOverlayEntry(cudaIncLoc.str(), "cuda.modulemap",
+                              clingIncLoc.str(), MOverlay);
+
+    if (/*needsOverlay*/!MOverlay.empty()) {
+      // Virtual modulemap overlay file
+      MOverlay.insert(0, "{\n 'version': 0,\n 'roots': [\n");
+
+      MOverlay += "]\n }\n ]\n }\n";
+
+      const std::string VfsOverlayFileName = "modulemap.overlay.yaml";
+      if (HSOpts.Verbose)
+        cling::log() << VfsOverlayFileName << "\n" << MOverlay;
+
+      // Set up the virtual modulemap overlay file
+      std::unique_ptr<llvm::MemoryBuffer> Buffer =
+        llvm::MemoryBuffer::getMemBuffer(MOverlay);
+
+      IntrusiveRefCntPtr<clang::vfs::FileSystem> FS =
+        vfs::getVFSFromYAML(std::move(Buffer), nullptr, VfsOverlayFileName);
+      if (!FS.get())
+        llvm::errs() << "Error in modulemap.overlay!\n";
+
+      // Load virtual modulemap overlay file
+      CI.getInvocation().addOverlay(FS);
+    }
+
+    if (HSOpts.ImplicitModuleMaps)
+      return;
+
+    // Register the modulemap files.
+    llvm::SmallString<512> resourceDirLoc(HSOpts.ResourceDir);
+    llvm::sys::path::append(resourceDirLoc, "include", "module.modulemap");
+    ModuleMapFiles.push_back(resourceDirLoc.str().str());
+    // FIXME: Move these calls in maybeAppendOverlayEntry.
+    llvm::sys::path::append(cIncLoc, "module.modulemap");
+    ModuleMapFiles.push_back(cIncLoc.str().str());
+    llvm::sys::path::append(stdIncLoc, "module.modulemap");
+    ModuleMapFiles.push_back(stdIncLoc.str().str());
+    if (!cudaIncLoc.empty()) {
+      llvm::sys::path::append(cudaIncLoc, "module.modulemap");
+      ModuleMapFiles.push_back(cudaIncLoc.str().str());
+    }
+    llvm::sys::path::append(clingIncLoc, "module.modulemap");
+    ModuleMapFiles.push_back(clingIncLoc.str().str());
+  }
+
+  static void setupCxxModules(clang::CompilerInstance& CI) {
+    assert(CI.getLangOpts().Modules);
+    clang::HeaderSearchOptions& HSOpts = CI.getHeaderSearchOpts();
+    // Register prebuilt module paths where we will lookup module files.
+    addPrebuiltModulePaths(HSOpts,
+                           getPathsFromEnv(getenv("CLING_PREBUILT_MODULE_PATH")));
+
+    // Register all modulemaps necessary for cling to run. If we have specified
+    // -fno-implicit-module-maps then we have to add them explicitly to the list
+    // of modulemap files to load.
+    llvm::SmallVector<std::string, 4> ModuleMaps;
+
+    collectModuleMaps(CI, ModuleMaps);
+
+    assert(HSOpts.ImplicitModuleMaps == ModuleMaps.empty() &&
+           "We must have register the modulemaps by hand!");
+    // Prepend the modulemap files we attached so that they will be loaded.
+    if (!HSOpts.ImplicitModuleMaps) {
+      FrontendOptions& FrontendOpts = CI.getInvocation().getFrontendOpts();
+      FrontendOpts.ModuleMapFiles.insert(FrontendOpts.ModuleMapFiles.begin(),
+                                         ModuleMaps.begin(), ModuleMaps.end());
     }
   }
 
@@ -778,7 +923,8 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
 
   static CompilerInstance*
   createCIImpl(std::unique_ptr<llvm::MemoryBuffer> Buffer,
-               const CompilerOptions& COpts, const char* LLVMDir,
+               const CompilerOptions& COpts,
+               const char* LLVMDir,
                std::unique_ptr<clang::ASTConsumer> customConsumer,
                const CIFactory::ModuleFileExtensions& moduleExtensions,
                bool OnlyLex, bool HasInput = false) {
@@ -874,7 +1020,7 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
     // This argument starts the cling instance with the x86 target. Otherwise,
     // the first job in the joblist starts the cling instance with the nvptx
     // target.
-    if(COpts.CUDA)
+    if(COpts.CUDAHost)
       argvCompile.push_back("--cuda-host-only");
 
     // argv[0] already inserted, get the rest
@@ -1051,16 +1197,6 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
 
     FrontendOpts.DisableFree = true;
 
-    // With modules, we now start adding prebuilt module paths to the CI.
-    // Modules from those paths are treated like they are never out of date
-    // and we don't update them on demand.
-    // This mostly helps ROOT where we can't just recompile any out of date
-    // modules because we would miss the annotations that rootcling creates.
-    if (COpts.CxxModules) {
-      auto& HS = CI->getHeaderSearchOpts();
-      addPrebuiltModulePaths(HS, getPathsFromEnv(getenv("CLING_PREBUILT_MODULE_PATH")));
-    }
-
     // Set up compiler language and target
     if (!SetupCompiler(CI.get(), COpts, InitLang, InitTarget))
       return nullptr;
@@ -1115,7 +1251,18 @@ static void stringifyPreprocSetting(PreprocessorOptions& PPOpts,
 
     // Set up the preprocessor
     CI->createPreprocessor(TU_Complete);
+
+    // With modules, we now start adding prebuilt module paths to the CI.
+    // Modules from those paths are treated like they are never out of date
+    // and we don't update them on demand.
+    // This mostly helps ROOT where we can't just recompile any out of date
+    // modules because we would miss the annotations that rootcling creates.
+    if (COpts.CxxModules) {
+      setupCxxModules(*CI);
+    }
+
     Preprocessor& PP = CI->getPreprocessor();
+
     PP.getBuiltinInfo().initializeBuiltins(PP.getIdentifierTable(),
                                            PP.getLangOpts());
 
@@ -1264,7 +1411,7 @@ CompilerInstance* CIFactory::createCI(
     MemBufPtr_t Buffer, int argc, const char* const* argv, const char* LLVMDir,
     std::unique_ptr<clang::ASTConsumer> consumer,
     const ModuleFileExtensions& moduleExtensions, bool OnlyLex /*false*/) {
-  return createCIImpl(std::move(Buffer), CompilerOptions(argc, argv), LLVMDir,
+  return createCIImpl(std::move(Buffer), CompilerOptions(argc, argv),  LLVMDir,
                       std::move(consumer), moduleExtensions, OnlyLex);
 }
 

@@ -58,7 +58,8 @@ namespace cling {
     unsigned HasOutput : 1;
     unsigned Verbose : 1;
     unsigned CxxModules : 1;
-    unsigned CUDA : 1;
+    unsigned CUDAHost : 1;
+    unsigned CUDADevice : 1;
     unsigned SYCL : 1;
     /// \brief The output path of any C++ PCMs we're building on demand.
     /// Equal to ModuleCachePath in the HeaderSearchOptions.
@@ -86,9 +87,6 @@ namespace cling {
     /// \brief A line starting with this string is assumed to contain a
     ///        directive for the MetaProcessor. Defaults to "."
     std::string MetaString;
-
-    /// \brief A path of modulemaps to be overlayed.
-    std::string OverlayFile;
 
     std::vector<std::string> LibsToLoad;
     std::vector<std::string> LibSearchPath;
