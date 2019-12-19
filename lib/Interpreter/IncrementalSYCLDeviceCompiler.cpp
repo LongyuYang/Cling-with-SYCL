@@ -33,6 +33,17 @@ private:
   const ASTContext &m_context;
   IncrementalSYCLDeviceCompiler::MapUnique &m_UniqueToEntry;
   int lastUnique;
+  const std::vector<const char *> clearTargets = {"= <null expr>"};
+  void clearPrint(std::string &input) {
+    for (auto targetCString : clearTargets) {
+      std::string target(targetCString);
+      size_t pos = 0;
+      while (pos < input.length() &&
+             (pos = input.find(target, pos)) != std::string::npos) {
+        input.erase(pos, target.length());
+      }
+    }
+  }
 
 public:
   explicit InterpreterConsumer(
@@ -68,13 +79,15 @@ public:
             }
             for (DeclStmt::decl_iterator J = DS->decl_begin();
                  J != DS->decl_end(); ++J) {
-              dump << getRawSourceCode(m_context, (*J)->getSourceRange());
+              (*J)->print(dump);
+              // dump << getRawSourceCode(m_context, (*J)->getSourceRange());
               dump << ";\n";
             }
           }
           if (m_UniqueToEntry.count(unique)) {
             dump << m_UniqueToEntry[unique]->code;
             dump.flush();
+            clearPrint(DumpText);
             m_UniqueToEntry[unique]->code = std::move(DumpText);
           }
         }
