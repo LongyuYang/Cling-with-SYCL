@@ -24,8 +24,7 @@ void getSYCLCompileOpt(Interpreter *interp, std::vector<const char *> &m_Args,
 ///\brief The struct is responsible for storing code that a user inputs at one
 /// time.
 struct DumpCodeEntry {
-  ///\brief 1 if code is entered through Interpreter::EvaluateInternal, and 0 if
-  /// code is entered through Interpreter::DeclareInternal.
+  ///\brief 1 if the code is not declaration, and 1 otherwise
   unsigned int isStatement;
   ///\brief Content of the code the user inputs at a time.
   std::string code;
@@ -48,7 +47,6 @@ public:
   IncrementalSYCLDeviceCompilerBase() {}
   virtual ~IncrementalSYCLDeviceCompilerBase() {}
   virtual void setExtractDeclFlag(const bool flag) {}
-  virtual void setClearFlag(const bool flag) {}
   virtual bool compile(const std::string &input, Transaction *T,
                        unsigned int isStatement, bool declSuccess = false) {
     return true;
@@ -69,7 +67,7 @@ public:
   /// EntryList.
   typedef std::unordered_map<size_t, std::list<DumpCodeEntry>::iterator>
       MapUnique;
-  ///\brief Used for assigning each DumpCodeEntry a unique number
+  ///\brief Used for assigning each DumpCodeEntry a unique number.
   static size_t m_UniqueCounter;
   ///\brief Filename of the target cpp file.
   static const std::string dumpFile;
@@ -94,9 +92,10 @@ private:
   ///\brief True if the code is entered by the user. Used to avoid non-user code
   /// to enter the code EntryList.
   bool ExtractDeclFlag = false;
-  ///\brief a lexical analysis tool providing storage for the input and tracks down 
-  /// whether the (, [, { are balanced. Used by the IncrementalSYCLDeviceCompiler
-  /// to break the whole cppfile sent by jupyter-notebook into several DumpcodeEntrys 
+  ///\brief a lexical analysis tool providing storage for the input and tracks
+  /// down whether the (, [, { are balanced. Used by the
+  /// IncrementalSYCLDeviceCompiler to break the whole cppfile sent by
+  /// jupyter-notebook into several DumpcodeEntrys.
   std::unique_ptr<InputValidator> m_InputValidator;
   ///\brief Transaction correspondending to the kernel info header.
   Transaction **HeadTransaction = NULL;
@@ -125,9 +124,7 @@ public:
   ///
   ///\param [in] input - The code the user currently inputs.
   ///\param [in] T - Transaction correspondending to the code.
-  ///\param [in] isStatement - 1 if code is entered through
-  /// Interpreter::EvaluateInternal, and 0 if
-  /// code is entered through Interpreter::DeclareInternal.
+  ///\param [in] isStatement - 1 if the code is not declaration, and 1 otherwise
   ///\param [in] declSuccess - true if declaration is successful
   ///
   ///\returns True if compiling is successful
@@ -148,7 +145,7 @@ public:
   ///\brief Remove DumpCodeEntry from EntryList identified by a Transaction.
   ///
   ///\param [in] T - Transaction correspondending to the code that will be
-  ///removed.
+  /// removed.
   void removeCodeByTransaction(Transaction *T);
 
   ///\brief Add compiler arguments. Called by Interpreter::AddIncludePaths().
@@ -179,19 +176,18 @@ private:
   ///\returns True if compiling is successful.
   bool compileImpl();
 
-  ///\brief Insert a DumpCodeEntry to EntryList
+  ///\brief Insert a DumpCodeEntry to EntryList.
   ///
-  ///\param [in] isStatement - 1 if code is entered through
-  /// Interpreter::EvaluateInternal, and 0 if
-  /// code is entered through Interpreter::DeclareInternal.
+  ///\param [in] isStatement - 1 if the code is not declaration, and 1 otherwise
   ///\param [in] input - Content of the input code.
   ///\param [in] T - Transaction correspondent to the code.
   void insertCodeEntry(unsigned int is_statement, const std::string &input,
                        Transaction *T);
-  ///\brief Use a CompilerInstance to build a AST and use custom ASTConsumer to extract declaration 
-  /// out of wrapper function into the global scope. Then modify the code of DumpCodeEntry in EntryList.
+  ///\brief Use a CompilerInstance to build a AST and use custom ASTConsumer to
+  /// extract declaration out of wrapper function into the global scope. Then
+  /// modify the code of DumpCodeEntry in EntryList.
   ///
-  ///\returns True if compiling is successful
+  ///\returns True if compiling is successful.
   bool refactorCode();
 };
 

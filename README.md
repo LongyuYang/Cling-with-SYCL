@@ -19,10 +19,14 @@ cd src
 git checkout cling-patches
 cd tools
 <<<<<<< HEAD
+<<<<<<< HEAD
 git clone https://gitlab.devtools.intel.com/shqa/root-clang-mirror.git clang
 =======
 git clone https://gitlab.devtools.intel.com/shqa/root-clang-mirror.git
 >>>>>>> 475805a7... mirror llvm and clang from root to internal gitlab
+=======
+git clone https://gitlab.devtools.intel.com/shqa/root-clang-mirror.git clang
+>>>>>>> d74c8c6c... clear DeclPrint and correct README
 cd clang
 git checkout cling-patches
 ```
