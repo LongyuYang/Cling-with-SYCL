@@ -177,7 +177,6 @@ namespace cling {
         return kLoadLibNotFound;
     }
 
-    //auto it = m_LoadedLibraries.keys();
     if (m_LoadedLibraries.find(canonicalLoadedLib) != m_LoadedLibraries.end())
       return kLoadLibAlreadyLoaded;
 
@@ -205,11 +204,6 @@ namespace cling {
     if (!insRes.second)
       return kLoadLibAlreadyLoaded;
     m_LoadedLibraries.insert(canonicalLoadedLib);
-    //printf("\n\nyes\n\n");
-    //llvm::StringSet<>::iterator it = m_LoadedLibraries.begin();
-    //for(it = m_LoadedLibraries.begin();it != m_LoadedLibraries.end();it++){
-    //  printf("LoadedLibrary:%s\n",it->first().str().c_str());
-    //}
     return kLoadLibSuccess;
   }
 

@@ -7,10 +7,12 @@
 // LICENSE.TXT for details.
 //------------------------------------------------------------------------------
 
-// The Test checks if a CUDA compatible device is available and checks, if simple
-// __global__ and __device__ kernels are running.
-// RUN: cat %s | %cling -x cuda -Xclang -verify 2>&1 | FileCheck %s
+// The test checks whether setting a new include path at runtime also works for
+// the PTX compiler.
+// RUN: cat %s | %cling -DTEST_PATH="\"%/p/\"" -x cuda -Xclang -verify 2>&1 | FileCheck %s
 // REQUIRES: cuda-runtime
+
+#include <iostream>
 
 // Check if cuda driver is available
 int version;
@@ -24,25 +26,19 @@ cudaGetDeviceCount(&device_count)
 device_count > 0
 // CHECK: (bool) true
 
-// Check, if the smallest __global__ kernel is callable.
-.rawInput 1
-__global__ void gKernel1(){}
-.rawInput 0
-gKernel1<<<1,1>>>();
-cudaGetLastError()
-// CHECK: (cudaError_t) (cudaError::cudaSuccess) : (unsigned int) 0
-cudaDeviceSynchronize()
-// CHECK: (cudaError_t) (cudaError::cudaSuccess) : (unsigned int) 0
+#include "cling/Interpreter/Interpreter.h"
+gCling->AddIncludePaths(TEST_PATH "include");
 
-// Check, if a simple __device__ kernel is useable.
-.rawInput 1
-__device__ int dKernel1(){return 42;}
-__global__ void gKernel2(){int i = dKernel1();}
-.rawInput 0
-gKernel2<<<1,1>>>();
+#include "foo.h"
+
+foo()
+// CHECK: (int) 3
+
+// Runing the kernel is neccessary because FileCheck has problems whith the
+// error output of the PTX compiler. Therefore I need an error message from
+// the host interpreter.
+bar<<<1,1>>>();
 cudaGetLastError()
-// CHECK: (cudaError_t) (cudaError::cudaSuccess) : (unsigned int) 0
-cudaDeviceSynchronize()
 // CHECK: (cudaError_t) (cudaError::cudaSuccess) : (unsigned int) 0
 
 

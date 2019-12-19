@@ -174,6 +174,11 @@ else()
   set(BACKEND_PACKAGE_STRING "${PACKAGE_STRING}")
 endif()
 
+if( NOT "NVPTX" IN_LIST LLVM_TARGETS_TO_BUILD)
+  message(FATAL_ERROR "NVPTX backend is not activated\n"
+    "Please enable it via -DLLVM_TARGETS_TO_BUILD=\"host;NVPTX\"")
+endif()
+
 set(CLING_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set(CLING_BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -306,6 +311,9 @@ string(REGEX REPLACE "[0-9].([0-9]+)~[a-zA-Z]+" "\\1" CLING_VERSION_MINOR ${CLIN
 if(DEFINED ROOT_BINARY_DIR)
   # Building as part of ROOT.
   set(CLING_VERSION ROOT_${CLING_VERSION})
+  set(CMAKE_CXX_VISIBILITY_PRESET default)
+  set(CMAKE_C_VISIBILITY_PRESET default)
+  set(CMAKE_VISIBILITY_INLINES_HIDDEN "ON")
 endif()
 message(STATUS "Cling version (from VERSION file): ${CLING_VERSION}")
 

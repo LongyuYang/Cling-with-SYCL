@@ -70,16 +70,12 @@ namespace {
 
 namespace cling {
 
-  UserInterface::UserInterface(Interpreter& interp) {//:m_out(...)
-    // printf("open dump.cpp file\n");
+  UserInterface::UserInterface(Interpreter& interp) {
     m_MetaProcessor.reset(new MetaProcessor(interp, cling::outs()));
     llvm::install_fatal_error_handler(&CompilationException::throwingHandler);
   }
 
-  UserInterface::~UserInterface() {
-    // if (m_out.is_open()) m_out.close();
-    // printf("close dump.cpp file\n");
-  }
+  UserInterface::~UserInterface() {}
 
   void UserInterface::runInteractively(bool nologo /* = false */) {
     if (!nologo) {
@@ -87,7 +83,6 @@ namespace cling {
     }
 
     llvm::SmallString<512> histfilePath;
-    //if (!getenv("CLI//NG_NOHISTORY"))
     if (!getenv("CLING_NOHISTORY")) {
       // History file is $HOME/.cling_history
       if (llvm::sys::path::home_directory(histfilePath))
@@ -107,9 +102,6 @@ namespace cling {
     std::string Prompt("[cling]$ ");
 
     while (!Done) {
-      //llvm::raw_ostream& m_out = m_MetaProcessor->getOuts();
-      // m_out <<"yes"<< Line << '\n';
-      // m_out.flush();
       try {
         m_MetaProcessor->getOuts().flush();
         {
@@ -158,10 +150,6 @@ namespace cling {
     llvm::raw_ostream& outs = m_MetaProcessor->getOuts();
     const clang::LangOptions& LangOpts
       = m_MetaProcessor->getInterpreter().getCI()->getLangOpts();
-    // fixme:
-      //outs << "\n"
-      //  "#include\"CL/sycl.hpp\"\n"
-      //  ".L /home/test/sycl/build/lib/libsycl.so";
     if (LangOpts.CPlusPlus) {
       outs << "\n"
         "****************** CLING ******************\n"

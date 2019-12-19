@@ -15,13 +15,6 @@
 
 #include <utility>
 
-#include <fstream>
-#include <sstream>
-#include <vector>
-bool first_regenerate_header = true;
-std::vector<std::string> kernel_names;
-std::vector<std::string> kernel_signatures;
-#include <iostream>
 using namespace clang;
 
 namespace {
@@ -146,7 +139,6 @@ public:
   /// \param Tok - Token, advanced to first token to test
   /// \param First - First token identifier.
   /// \return - Typeof definition, function/method or class
-  /// return until find ttoken { !!!!!!!!!
   DefinitionType IsClassOrFunction(Token& Tok, llvm::StringRef First) {
     /// ###TODO: Allow preprocessor expansion
     if (!Lexer::isIdentifierBodyChar(First.front(), getLangOpts()))
@@ -355,171 +347,6 @@ cling::utils::isUnnamedMacro(llvm::StringRef source,
   return std::string::npos;
 }
 
-bool cling::utils::generate_hppandspv(std::string& input, const clang::LangOptions& LangOpts){
-  MinimalPPLexer Lex(LangOpts, input);
-  Token Tok;
-   while (true) {
-    bool atEOF = Lex.Lex(Tok);
-    if(Tok.is(tok::raw_identifier)&& !Tok.needsCleaning()){
-      atEOF = Lex.Lex(Tok);
-      if((Tok.is(tok::period) || Tok.is(tok::arrow)) && !Tok.needsCleaning()){
-        atEOF = Lex.Lex(Tok);
-        if(Tok.is(tok::raw_identifier)&& !Tok.needsCleaning()){
-            if(Tok.getRawIdentifier().equals("submit")){
-                atEOF = Lex.Lex(Tok);
-                if(Tok.is(tok::l_paren)&& !Tok.needsCleaning()){
-                  if(Lex.CheckBalance(Tok)){
-                    //printf("\n\nmatched\n\n");//
-                    return true;
-                  }
-                }
-            }
-        }
-      }
-    }
-    //printf("Tokkind: %s\n",tok::getTokenName(Tok.getKind()));
-    if (Tok.is(tok::eof)) {
-      return false;
-    }
-  }
-  return false;
-}
-bool cling::utils::incremental_generate_headfile(std::string& input,const clang::LangOptions& LangOpts){
-  std::ifstream dump_in;
-  dump_in.open("st.h");
-  std::ostringstream tmp;
-  tmp << dump_in.rdbuf();
-  std::string head = tmp.str();
-  //printf("head st.h\n:%s\n",head.c_str());
-  MinimalPPLexer Lex(LangOpts,head);
-  Token Tok;
-  bool new_exist = false;
-  if(kernel_names.size()!=kernel_signatures.size())
-    assert(0);
-  int old_num = kernel_names.size();
-  while(true){
-    bool atEOF = Lex.Lex(Tok);
-    if (Lex.inPPDirective() || Tok.is(tok::eod)) {
-      if (atEOF)
-        break;
-      continue; // Skip PP directives; they just move the wrap point.
-    }
-    //printf("Tokkind: %s off:%d\n",tok::getTokenName(Tok.getKind()),getFileOffset(Tok));
-    if (Tok.is(tok::raw_identifier)) {
-      if(Tok.getRawIdentifier().equals("class")){
-        atEOF = Lex.Lex(Tok);
-        std::string kernel_name= Tok.getRawIdentifier().str();
-        if(kernel_names.empty()){
-          kernel_names.push_back(kernel_name);
-        } else{
-          bool exist = false;
-          for(int i =0;i < kernel_names.size();i++){
-              if(kernel_names[i].compare(kernel_name)==0)
-                exist = true;
-          }
-          if(!exist){
-            kernel_names.push_back(kernel_name);
-            new_exist = true;
-          }
-        }
-      }
-      if(Tok.getRawIdentifier().equals("namespace")){
-        break;
-      }
-      //atEOF = Lex.Lex(Tok);
-    }
-    if (Tok.is(tok::eof)) {
-      if(old_num == kernel_names.size())
-        return false;
-      else
-        assert(0);
-    }
-  }
-  if(old_num == kernel_names.size())
-        return false;
-  for(int i =0;i<kernel_names.size();i++){
-    //printf("kernel_name:%s\n",kernel_names[i].c_str());
-  }
-  int template_num = 0;
-  while(true){
-    bool atEOF = Lex.Lex(Tok);
-    if (Tok.is(tok::raw_identifier)) {
-      if(Tok.getRawIdentifier().equals("kernel_signatures")){
-        Lex.AdvanceTo(Tok,tok::l_brace);
-        while(true){
-          if(template_num == kernel_names.size())
-            break;
-          Lex.AdvanceTo(Tok,tok::l_brace);
-          int buffstart = getFileOffset(Tok);
-          Lex.CheckBalance(Tok);
-          int buffend = getFileOffset(Tok);
-          std::string kernel_signature = head.substr(buffstart,buffend-buffstart +1);
-          if(old_num <= template_num && template_num < kernel_names.size()){
-            kernel_signatures.push_back(kernel_signature);
-          }
-          template_num++;
-        }
-      }
-      if(Tok.getRawIdentifier().equals("kernel_signature_start"))
-        break;
-    }
-  }
-  for(int i =0;i<kernel_signatures.size();i++){
-    //printf("kernel_signature:%s\n",kernel_signatures[i].c_str());
-  }
-  //printf("yes\n");
-  if(kernel_names.size()!=kernel_signatures.size())
-    assert(0);
-  int new_num = kernel_names.size();
-  template_num = 0;
-  std::string output; 
-  while(true){
-    bool atEOF = Lex.Lex(Tok);
-    if (Tok.is(tok::raw_identifier)) {
-      if(Tok.getRawIdentifier().equals("template")){
-          int buff_start = getFileOffset(Tok);
-          Lex.AdvanceTo(Tok,tok::l_brace);
-          while(true){
-            Lex.Lex(Tok);
-            if (Tok.is(tok::raw_identifier)) {
-              if(Tok.getRawIdentifier().equals("kernel_signatures")){
-                break;
-              }
-            }
-          }
-          int buff_end = getFileOffset(Tok);
-          if(old_num <= template_num && template_num < new_num){
-              std::string temp;
-              if(first_regenerate_header){
-                first_regenerate_header = false;
-                temp.append("#include <CL/sycl/detail/kernel_desc.hpp>\n");
-              }
-              temp.append("class ");
-              temp.append(kernel_names[template_num]);
-              temp.append(";\nnamespace cl {\nnamespace sycl {\nnamespace detail {\n");
-              temp.append("static constexpr const kernel_param_desc_t kernel_signatures_");
-              temp.append(kernel_names[template_num]);
-              temp.append(" = ");
-              temp.append(kernel_signatures[template_num]);
-              temp.append(";\n");
-              temp.append(head.substr(buff_start,buff_end - buff_start));
-              temp.append("kernel_signatures_");
-              temp.append(kernel_names[template_num]);
-              Lex.AdvanceTo(Tok,tok::semi);
-              temp.append(";\n  }\n};\n} // namespace detail\n} // namespace sycl\n} // namespace cl\n\n");
-              output.append(temp);
-          }
-          template_num ++;
-      }
-    }
-    if (Tok.is(tok::eof)) {
-      break;
-    }
-  }
-  input.swap(output);
-  dump_in.close();
-  return true;
-}
 
 size_t cling::utils::getWrapPoint(std::string& source,
                                   const clang::LangOptions& LangOpts) {
@@ -532,7 +359,6 @@ size_t cling::utils::getWrapPoint(std::string& source,
 
   MinimalPPLexer Lex(LangOpts, source);
   Token Tok;
-  //printf("Source: %s\n",source.c_str());
   while (true) {
     bool atEOF = Lex.Lex(Tok);
     if (Lex.inPPDirective() || Tok.is(tok::eod)) {
@@ -547,11 +373,29 @@ size_t cling::utils::getWrapPoint(std::string& source,
       return std::string::npos;
     }
 
+    // detect the attribute (__global__, __device__ and __host__) of CUDA
+    // kernels at the beginning of a function definition
+    // FIXME: should replaced by a generic solution
+    if (LangOpts.CUDA) {
+      do {
+        if (Tok.getKind() == tok::raw_identifier) {
+          StringRef keyword(Tok.getRawIdentifier());
+          if (keyword.equals("__global__") || keyword.equals("__device__") ||
+              keyword.equals("__host__"))
+            // if attribute was found, skip the token and use the function
+            // detection later
+            Lex.Lex(Tok);
+          else
+            break;
+        } else
+          break;
+      } while (true);
+    }
+
     // Prior behavior was to return getFileOffset, which was only used as an
     // in a test against std::string::npos. By returning 0 we preserve prior
     // behavior to pass the test against std::string::npos and wrap everything
     const size_t offset = 0;
-    //printf("Tokname: %s\n",tok::getTokenName(Tok.getKind()));
     // Check, if a function with c++ attributes should be defined.
     while (Tok.getKind() == tok::l_square) {
       Lex.Lex(Tok);
@@ -575,7 +419,6 @@ size_t cling::utils::getWrapPoint(std::string& source,
 
     if (kind == tok::raw_identifier && !Tok.needsCleaning()) {
       StringRef keyword(Tok.getRawIdentifier());
-      //printf("ID: %s off:%d\n",Tok.getRawIdentifier().str().c_str(),getFileOffset(Tok));
       if (keyword.equals("using")) {
         // FIXME: Using definitions and declarations should be decl extracted.
         // Until we have that, don't wrap them if they are the only input.
@@ -662,28 +505,3 @@ size_t cling::utils::getWrapPoint(std::string& source,
   // We have only had PP directives; no need to wrap.
   return std::string::npos;
 }
-
-/*
-size_t cling::utils::getSyclWrapPoint(std::string &source,
-                                      const clang::LangOptions &LangOpts) {
-
-  MinimalPPLexer Lex(LangOpts, source);
-  Token Tok;
-
-  while (true) {
-    bool atEOF = Lex.Lex(Tok);
-    if (atEOF)
-      return 1;
-    if (Tok.is(tok::semi))
-      return 1;
-    if (Tok.is(tok::l_brace) || Tok.is(tok::l_paren) || Tok.is(tok::l_square))
-      return 1;
-    if (Tok.is(tok::raw_identifier)) {
-      if (Tok.getRawIdentifier().equals("constexpr")||Tok.getRawIdentifier().equals("const")) {
-        source += ";";
-        return 0;
-      }
-    }
-  }
-}
-*/

@@ -112,10 +112,6 @@ namespace cling {
     bool isTypedefCommand();
     bool isShellCommand(MetaSema::ActionResult& actionResult,
                         Value* resultValue);
-
-    // fixme:
-    bool isprintMBCommand();    //for debug
-    
   public:
     MetaParser(MetaSema* Actions);
     void enterNewInputLine(llvm::StringRef Line);
