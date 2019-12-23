@@ -29,12 +29,15 @@ namespace cling {
     return std::string(buf_begin, buf_end);
   }
 
+  // Rewrite ASTConsumer to implement Decl Extractor to make the Decl inside
+  // the wrap function Global
   class InterpreterConsumer : public ASTConsumer {
   private:
     const ASTContext& m_context;
     IncrementalSYCLDeviceCompiler::MapUnique& m_UniqueToEntry;
     int lastUnique;
     const std::vector<const char*> clearTargets = {"= <null expr>"};
+    // Clear Unexpected Output introduced by Decl::print
     void clearPrint(std::string& input) {
       for (auto targetCString : clearTargets) {
         std::string target(targetCString);
@@ -59,11 +62,13 @@ namespace cling {
       for (auto it = DGR.begin(); it != DGR.end(); it++) {
         Decl* D = *it;
         if (D->isFunctionOrFunctionTemplate()) {
+          // Extract only the decl inside wrapper function
           FunctionDecl* FD = cast<FunctionDecl>(D);
           std::string FunctionName = FD->getNameAsString();
           if (FunctionName.find("__cling_custom_sycl_") != 0)
             continue;
           int unique = std::stoi(FunctionName.substr(20));
+          // Only handle the new wrapper
           if (unique > lastUnique) {
             CompoundStmt* CS = dyn_cast<CompoundStmt>(FD->getBody());
             for (CompoundStmt::body_iterator I = CS->body_begin(),
@@ -80,6 +85,7 @@ namespace cling {
               }
               for (DeclStmt::decl_iterator J = DS->decl_begin();
                    J != DS->decl_end(); ++J) {
+                // Use Decl::print to dump the AST into cpp 
                 (*J)->print(dump);
                 // dump << getRawSourceCode(m_context, (*J)->getSourceRange());
                 dump << ";\n";
@@ -192,16 +198,22 @@ namespace cling {
     std::string line;
     std::string complete_input;
     m_Uniques.clear();
+    // When integrated with jupyter notebook , the jupyter server may send a complete cpp file, 
+    // need to use InputValidator to split the original cpp into several closed decl and stmt,
+    // then wrap them in wrap_function 
     while (getline(input_holder, line)) {
       if (line.empty() || (line.size() == 1 && line.front() == '\n')) {
         continue;
       }
+      // Check whethe a decl or stmt is complete
       if (m_InputValidator->validate(line) == InputValidator::kIncomplete) {
         continue;
       }
+      // Clear cached input if complete
       complete_input.clear();
       m_InputValidator->reset(&complete_input);
       size_t wrapPoint = std::string::npos;
+      // Wrap the complete input and dum them
       wrapPoint = utils::getWrapPoint(complete_input,
                                       m_Interpreter->getCI()->getLangOpts());
       if (wrapPoint == std::string::npos) {
@@ -258,6 +270,7 @@ namespace cling {
 
     // Initialize CompilerInstance
     CompilerInstance CI;
+    // Create complie options
     clang::CompilerInvocation::CreateFromArgs(CI.getInvocation(), m_Args.data(),
                                               m_Args.data() + m_Args.size(),
                                               CI.getDiagnostics());
@@ -296,6 +309,7 @@ namespace cling {
       command = command + " " + arg;
     }
 
+    // Use SYCL device compiler to generate Kernel info and Device code
     int sysReturn = std::system(command.c_str());
     if (sysReturn != 0) {
       secureCode = false;
