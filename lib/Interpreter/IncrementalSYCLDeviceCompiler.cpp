@@ -205,7 +205,7 @@ namespace cling {
       if (line.empty() || (line.size() == 1 && line.front() == '\n')) {
         continue;
       }
-      // Check whethe a decl or stmt is complete
+      // Check whether a decl or stmt is complete
       if (m_InputValidator->validate(line) == InputValidator::kIncomplete) {
         continue;
       }
@@ -213,7 +213,7 @@ namespace cling {
       complete_input.clear();
       m_InputValidator->reset(&complete_input);
       size_t wrapPoint = std::string::npos;
-      // Wrap the complete input and dum them
+      // Wrap the complete input and dump them
       wrapPoint = utils::getWrapPoint(complete_input,
                                       m_Interpreter->getCI()->getLangOpts());
       if (wrapPoint == std::string::npos) {
