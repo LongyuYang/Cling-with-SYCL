@@ -91,6 +91,7 @@ namespace cling {
                 dump << ";\n";
               }
             }
+	    // replace the code of code entry
             if (m_UniqueToEntry.count(unique)) {
               dump << m_UniqueToEntry[unique]->code;
               dump.flush();
