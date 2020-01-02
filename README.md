@@ -1,12 +1,12 @@
 Cling with SYCL
 =========================================
 
-Cling C++ Interpreter with Intel SYCL extension. The root repository is at [https://github.com/root-project/cling](https://github.com/root-project/cling)
+Cling C++ Interpreter with SYCL extension. The root repository is at [https://github.com/root-project/cling](https://github.com/root-project/cling)
 
 Installation
 ------------
 ### Download SYCL compiler with jupyter-patch
-Clone and build SYCL Compiler following [this guide](https://gitlab.devtools.intel.com/shqa/llvm/blob/jupyter-patch/sycl/doc/GetStartedWithSYCLCompiler.md)
+Clone and build SYCL Compiler following [this guide](https://github.com/ruiqi-gao/llvm/blob/jupyter-patch/sycl/doc/GetStartedWithSYCLCompiler.md)
 ### Download llvm and clang with cling-patches
 Create a root directory for this project:
 ```bash
@@ -14,11 +14,11 @@ mkdir cling && cd cling
 ```
 Then clone llvm and clang with cling-patches:
 ```bash
-git clone https://gitlab.devtools.intel.com/shqa/root-llvm-mirror.git src
+git clone http://root.cern.ch/git/llvm.git src
 cd src
 git checkout cling-patches
 cd tools
-git clone https://gitlab.devtools.intel.com/shqa/root-clang-mirror.git clang
+git clone http://root.cern.ch/git/clang.git clang
 cd clang
 git checkout cling-patches
 ```
@@ -26,7 +26,7 @@ git checkout cling-patches
 You are now in the clang repository, then run:
 ```bash
 cd ..
-git clone https://gitlab.devtools.intel.com/shqa/jupyter-notebook-with-sycl.git cling
+git clone https://github.com/LongyuYang/Cling-with-SYCL.git cling
 ```
 ### Build cling
 Return to the root directory and use cmake to configure the project:
